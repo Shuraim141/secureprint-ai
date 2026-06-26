@@ -7,6 +7,6 @@ opencv-python-headless
 ultralytics
 pycryptodome
 reportlab
-pytest-cov
+pytest-cov>=6.0
 bandit
 safety
