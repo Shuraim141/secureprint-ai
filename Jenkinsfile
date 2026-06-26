@@ -20,17 +20,23 @@ pipeline {
 
     stages {
 
-        // ── Stage 1: Checkout & Setup ───────────────────────
+        // ── Stage 1: Setup — isolated venv ──────────────────
         stage('Setup') {
             steps {
                 echo '════════════════════════════════════════'
                 echo '  SecurePrint AI — Jenkins Pipeline'
                 echo '════════════════════════════════════════'
                 sh '''
+                    VENV_DIR="$WORKSPACE/.venv"
+                    if [ ! -d "$VENV_DIR" ]; then
+                        echo "Creating fresh venv..."
+                        python3 -m venv "$VENV_DIR"
+                    fi
+                    . "$VENV_DIR/bin/activate"
                     python3 --version
-                    pip3 install --upgrade pip --break-system-packages || pip3 install --upgrade pip
-                    pip3 install -r requirements.txt --break-system-packages --timeout 60 || pip3 install -r requirements.txt --timeout 60
-                    pip3 install bandit safety pytest pytest-cov --break-system-packages || pip3 install bandit safety pytest pytest-cov
+                    pip install --upgrade pip --timeout 60
+                    pip install -r requirements.txt --timeout 60
+                    pip install pytest --timeout 60
                     echo "✅ Environment ready"
                 '''
             }
@@ -40,6 +46,7 @@ pipeline {
         stage('SAST - Bandit') {
             steps {
                 sh '''
+                    . "$WORKSPACE/.venv/bin/activate"
                     echo "[SAST] Running Bandit security scan..."
                     mkdir -p reports
                     python3 -m bandit -r backend/ -f json -o reports/bandit-report.json --severity-level medium || true
@@ -57,6 +64,7 @@ pipeline {
         stage('Dependency Scan - Safety') {
             steps {
                 sh '''
+                    . "$WORKSPACE/.venv/bin/activate"
                     echo "[DEPS] Scanning dependencies for known CVEs..."
                     python3 -m safety check || echo "⚠ Some advisories found - review reports"
                 '''
@@ -67,6 +75,7 @@ pipeline {
         stage('Unit Tests') {
             steps {
                 sh '''
+                    . "$WORKSPACE/.venv/bin/activate"
                     echo "[TESTS] Running full test suite..."
                     python3 -m pytest tests/test_all.py -v --tb=short \
                         --cov=backend --cov-report=term --cov-report=xml:reports/coverage.xml \
@@ -84,6 +93,7 @@ pipeline {
         stage('G-code Security Gate') {
             steps {
                 sh '''
+                    . "$WORKSPACE/.venv/bin/activate"
                     echo "[GCODE] Validating G-code test fixtures..."
                     python3 -c "
 import sys, glob, json
@@ -116,6 +126,7 @@ else:
         stage('Component Smoke Tests') {
             steps {
                 sh '''
+                    . "$WORKSPACE/.venv/bin/activate"
                     echo "[SMOKE] Validating IP protection + blockchain modules import and run..."
                     python3 backend/ml/ip_protection.py || true
                     python3 backend/blockchain/fabric_client.py || true
@@ -127,6 +138,7 @@ else:
         stage('Compliance Gate') {
             steps {
                 sh '''
+                    . "$WORKSPACE/.venv/bin/activate"
                     python3 -c "
 import json, sys, os
 
