@@ -29,7 +29,7 @@ pipeline {
                 sh '''
                     python3 --version
                     pip3 install --upgrade pip --break-system-packages || pip3 install --upgrade pip
-                    pip3 install -r requirements.txt --break-system-packages || pip3 install -r requirements.txt
+                    pip3 install -r requirements.txt --break-system-packages --timeout 60 || pip3 install -r requirements.txt --timeout 60
                     pip3 install bandit safety pytest pytest-cov --break-system-packages || pip3 install bandit safety pytest pytest-cov
                     echo "✅ Environment ready"
                 '''
