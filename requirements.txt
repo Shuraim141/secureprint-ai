@@ -1,10 +1,9 @@
 flask-cors==6.0.5
 flask-jwt-extended==4.7.4
 gunicorn==26.0.0
-tensorflow==2.21.0
+tensorflow-cpu==2.21.0
 scikit-learn==1.9.0
 opencv-python-headless==4.13.0.92
-ultralytics==8.4.78
 pycryptodome==3.23.0
 reportlab==5.0.0
 coverage==7.14.3
