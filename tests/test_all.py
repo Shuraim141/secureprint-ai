@@ -11,6 +11,11 @@ Run: pytest tests/test_all.py -v --tb=short
 
 import sys
 import os
+try:
+    import tensorflow
+    HAS_TENSORFLOW = True
+except ImportError:
+    HAS_TENSORFLOW = False
 import json
 import struct
 import hashlib
