@@ -35,7 +35,7 @@ pipeline {
                     . "$VENV_DIR/bin/activate"
                     python3 --version
                     pip install --upgrade pip --timeout 60
-                    pip install -r requirements.txt --timeout 60
+                    pip install -r requirements.txt --no-index --find-links="$WORKSPACE/vendor"
                     pip install pytest --timeout 60
                     echo "✅ Environment ready"
                 '''
