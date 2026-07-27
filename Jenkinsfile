@@ -30,16 +30,14 @@ pipeline {
         }
         stage('Compliance Gate') {
             steps {
-                sh '''python3 -c "
-import json
+                sh '''python3 -c "import json
 gates = {\"bandit_no_high\": True}
 try:
     d = json.load(open(\"reports/bandit-report.json\"))
     if [r for r in d.get(\"results\",[]) if r[\"issue_severity\"]==\"HIGH\"]:
         gates[\"bandit_no_high\"] = False
 except: pass
-print(\"PASS\" if all(gates.values()) else \"FAIL\", gates)
-" || true'''
+print(\"PASS\" if all(gates.values()) else \"FAIL\", gates)" '''
             }
         }
     }
