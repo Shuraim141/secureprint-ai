@@ -1,0 +1,136 @@
+scripts/01_setup_environment.sh      ← run ONCE for system setup
+backend/ml/defect_detector.py        ← Step 2, run first
+backend/ml/ip_protection.py          ← Step 3, run second
+backend/blockchain/fabric_client.py  ← Step 4, run third
+backend/monitoring/anomaly_detector.py ← Step 5, run fourth
+backend/api/app.py                   ← Step 6, THE MAIN FILE
+tests/test_all.py                    ← Step 9, proves everything works
+docker/docker-compose.yml            ← Step 7, full deployment
+
+
+sudo /home/claude/3d-print-security/tfenv/bin/python3 defect_detector.py
+
+
+
+
+
+
+
+1. python3 backend/api/app.py          ← start this, keep it running
+2. python3 -m http.server 8080         ← in frontend/ folder, open dashboard
+3. git init → git push                 ← push to GitHub
+4. apt install jenkins → setup UI      ← connect to your GitHub repo
+5. docker-compose up -d                ← full stack in containers
+6. curl /api/compliance/report         ← show compliance demo
+
+
+-----------FOR API-------------------------------
+
+Step 1 — Start the API server
+TERMINAL 1 Keep this running the whole time
+cd /home/claude/3d-print-security
+TF_CPP_MIN_LOG_LEVEL=3 python3 backend/api/app.py
+
+
+TERMINAL 2 Test health endpoint
+curl http://localhost:5000/health
+
+
+TERMINAL 2 Login and get JWT token
+curl -s -X POST http://localhost:5000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"Admin@SecurePrint2024!"}' \
+  | python3 -m json.tool
+
+
+  TERMINAL 2 Save token and test all endpoints
+# Save your token first
+TOKEN=$(curl -s -X POST http://localhost:5000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"Admin@SecurePrint2024!"}' \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
+
+echo "Token saved: ${TOKEN:0:30}..."
+
+# Test dashboard stats
+curl -s http://localhost:5000/api/dashboard/stats \
+  -H "Authorization: Bearer $TOKEN" | python3 -m json.tool
+
+# Test compliance report
+curl -s http://localhost:5000/api/compliance/report \
+  -H "Authorization: Bearer $TOKEN" | python3 -m json.tool
+
+# Test security events
+curl -s http://localhost:5000/api/security/events \
+  -H "Authorization: Bearer $TOKEN" | python3 -m json.tool
+
+
+
+
+  ------------FOR FRONTEND--------------------------
+
+
+  
+Step 1 — Make sure API is running first
+API must be running in another terminal before opening dashboard
+# Terminal 1 — keep running:
+TF_CPP_MIN_LOG_LEVEL=3 python3 backend/api/app.py
+
+
+
+
+
+
+Option A Open dashboard directly in browser
+# On Linux with a desktop environment:
+xdg-open /home/claude/3d-print-security/frontend/dashboard.html
+
+# OR navigate manually in browser:
+# File → Open File → /home/claude/3d-print-security/frontend/dashboard.html
+Option B Serve via Python HTTP server (better — avoids CORS)
+# Terminal 2 — serve frontend:
+cd /home/claude/3d-print-security/frontend
+python3 -m http.server 8080
+
+# Then open in browser:
+# http://localhost:8080/dashboard.html
+
+
+------------FOR COMPLIANCE---------------
+
+Step 1 — Get the compliance report via API
+cd /home/claude/3d-print-security
+
+# Start API first (if not running)
+TF_CPP_MIN_LOG_LEVEL=3 python3 backend/api/app.py &
+sleep 2
+
+# Get JWT token
+TOKEN=$(curl -s -X POST http://localhost:5000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"Admin@SecurePrint2024!"}' \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
+
+# Get compliance report — pretty printed
+curl -s http://localhost:5000/api/compliance/report \
+  -H "Authorization: Bearer $TOKEN" \
+  | python3 -m json.tool
+
+
+
+
+  Step 2 — Run full SAST compliance scan (DevSecOps)
+cd /home/claude/3d-print-security
+mkdir -p reports
+
+# SAST — find security issues in code
+python3 -m bandit -r backend/ -f txt --severity-level medium
+
+# Dependency CVE scan
+python3 -m safety check
+
+# Run full test suite with coverage
+python3 -m pytest tests/test_all.py -v \
+  --cov=backend \
+  --cov-report=term-missing \
+  --tb=short
