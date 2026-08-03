@@ -7,9 +7,10 @@ backend/api/app.py                   ← Step 6, THE MAIN FILE
 tests/test_all.py                    ← Step 9, proves everything works
 docker/docker-compose.yml            ← Step 7, full deployment
 
-
-sudo /home/claude/3d-print-security/tfenv/bin/python3 defect_detector.py
-
+ sudo python3 -m venv tfenv
+source tfenv/bin/activate
+                          
+then run defect_detector.py
 
 
 
