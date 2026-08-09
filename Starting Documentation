@@ -2,6 +2,10 @@ scripts/01_setup_environment.sh      ← run ONCE for system setup
 backend/ml/defect_detector.py        ← Step 2, run first
 backend/ml/ip_protection.py          ← Step 3, run second
 backend/blockchain/fabric_client.py  ← Step 4, run third
+then go to ledger.db
+
+/opt/secureprint/blockchain/ 
+
 backend/monitoring/anomaly_detector.py ← Step 5, run fourth
 backend/api/app.py                   ← Step 6, THE MAIN FILE
 tests/test_all.py                    ← Step 9, proves everything works
