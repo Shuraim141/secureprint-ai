@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 ============================================================
-STEP 5: MANUFACTURING PROCESS SECURITY & ANOMALY DETECTION
+STEP 2: MANUFACTURING PROCESS SECURITY & ANOMALY DETECTION
 File: backend/monitoring/anomaly_detector.py
 
 Implements:
