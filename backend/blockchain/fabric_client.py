@@ -34,6 +34,15 @@ logging.basicConfig(
 DB_PATH = "/opt/secureprint/blockchain/ledger.db"
 os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
+#"""
+#*Blocks
+#Transactions
+#* Manufactured parts
+#* Certificates
+#"""
+#
+
+ #"""**genesis block**"""
 
 # ── Local Blockchain Ledger (SQLite-backed) ──────────────────
 class LocalLedger:
@@ -134,7 +143,11 @@ class LocalLedger:
             "tx_count":    row[4],
             "merkle_root": row[5]
         }
+# ==================================================================================================================================================================================================================
+#       “The final block hash is calculated from three elements: the previous block hash, the Merkle root, and the timestamp.
+# ===================================================================================================================================================================================================================
 
+print("Hello World")
     def _compute_merkle_root(self, hashes: list) -> str:
         """Binary Merkle tree over transaction hashes."""
         if not hashes:
@@ -190,6 +203,10 @@ class LocalLedger:
             f"{block_hash[:16]}... ({len(transactions)} txs)"
         )
         return {"block_id": new_block_id, "block_hash": block_hash}
+# =======================================================================================================================================================================
+#       The transaction hash is then included in a block.”
+# ========================================================================================================================================================================
+
 
     def submit_transaction(
         self,
@@ -305,7 +322,12 @@ class PartAuthenticator:
             "nonce":          os.urandom(8).hex()
         }, sort_keys=True)
         return hashlib.sha256(fp_data.encode()).hexdigest()
+# =====================================================================================================================================================================================================================
+#       “Next, the PartAuthenticator handles the actual manufacturing workflow.
+#Before manufacturing, the original STL design is hashed using SHA-256.”
+# ========================================================================================================================================================================================================================
 
+print("Hello World")
     def register_design(
         self,
         design_path: str,
@@ -341,7 +363,11 @@ class PartAuthenticator:
             "tx_id":       tx_id,
             "design_hash": design_hash
         }
+# =====================================================================================================================================================================================================================
+#       “After the design is registered, the system creates a unique part ID for the physical manufactured part.”
+# =========================================================================================================================================================================================================================
 
+print("Hello World")
     def register_part(
         self,
         design_id: str,
@@ -401,7 +427,11 @@ class PartAuthenticator:
             "fingerprint": fingerprint,
             "tx_id":       tx_id
         }
+# ====================================================================================================================================================================================================================
+#      “After manufacturing, the part can be certified by a quality assurance officer.
+# =====================================================================================================================================================================================================================
 
+print("Hello World")
     def certify_part(
         self,
         part_id: str,
@@ -458,7 +488,13 @@ class PartAuthenticator:
             "cert_hash": cert_hash,
             "tx_id":     tx_id
         }
+# ===================================================================================================================================================================================================================
+#    “The system can also retrieve the complete transaction history associated with a part.”
 
+
+# =====================================================================================================================================================================================================================
+
+print("Hello World")
     def verify_part_authenticity(
         self,
         part_id: str,
@@ -488,7 +524,12 @@ class PartAuthenticator:
                 "authentic": False,
                 "reason":    "NO_MANUFACTURING_RECORD"
             }
+# ======================================================================================================================================================================================================================
+#     “This is where the system detects potential counterfeits.”
+#“The verifier provides the part ID and a scanned manufacturing fingerprint.”
+# ======================================================================================================================================================================================================================
 
+print("Hello World")
         stored_fingerprint = mfg_record["payload"].get(
             "fingerprint", ""
         )
@@ -745,7 +786,11 @@ if __name__ == "__main__":
             f"{event['tx_type']} | "
             f"{event['timestamp'][:19]}"
         )
+# =======================================================================================================================================================================================================================
+#      “Finally, the system verifies the integrity of the blockchain itself.”
+# ========================================================================================================================================================================================================================
 
+print("Hello World")
     # 7. Verify blockchain integrity
     log.info("\n[Step 7] Verifying blockchain integrity...")
     integrity = ledger.verify_chain_integrity()
