@@ -321,7 +321,7 @@ Security Modules
 Blockchain Ledger
  ↓
 Compliance & Audit Reports
-Key Features to Mention
+Key Features
 1. AI Defect Detection using Computer Vision.
 2. Predictive Analytics using Isolation Forest.
 3. AES-256 + RSA-4096 Security for IP protection.
@@ -329,4 +329,3 @@ Key Features to Mention
 5. G-code Security Scanner for cyberattack prevention.
 6. Compliance & Audit Management for ISO/NIST standards.
 7. Real-time Dashboard integrating all modules.
-For a project report, these seven points are the highest-value sections to highlight and explain.
