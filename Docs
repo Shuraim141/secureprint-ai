@@ -1,0 +1,628 @@
+# SecurePrint AI Documentation
+
+## Overview
+
+SecurePrint AI is a cybersecurity-focused additive manufacturing platform that combines artificial intelligence, blockchain traceability, intellectual property protection, anomaly detection, and compliance automation.
+
+The platform helps organizations secure the entire manufacturing lifecycle, from design protection to production monitoring and supply-chain verification.
+
+---
+
+# Documentation Index
+
+## 1. Architecture
+
+### Core Components
+
+| Component               | Purpose                              |
+| ----------------------- | ------------------------------------ |
+| Flask API               | REST service layer                   |
+| Defect Detection Engine | AI-based quality inspection          |
+| IP Protection Engine    | Encryption, watermarking, signing    |
+| Anomaly Detector        | Manufacturing security monitoring    |
+| Blockchain Ledger       | Part traceability and authentication |
+| Dashboard               | Visualization and reporting          |
+| CI/CD Pipelines         | Automated validation and deployment  |
+
+---
+
+## 2. System Architecture
+
+```text
+┌─────────────────────────────┐
+│        Dashboard UI         │
+└──────────────┬──────────────┘
+               │ REST
+               ▼
+┌─────────────────────────────┐
+│         Flask API           │
+└──────┬────────┬────────┬────┘
+       │        │        │
+       ▼        ▼        ▼
+
+ Quality   Security   Blockchain
+ Engine     Engine      Ledger
+    │          │          │
+    ▼          ▼          ▼
+
+ Defects   Threats   Authenticity
+```
+
+---
+
+# Module Documentation
+
+---
+
+## backend/api/app.py
+
+### Purpose
+
+Primary backend API service.
+
+### Responsibilities
+
+* JWT authentication
+* Quality inspection endpoints
+* Design encryption endpoints
+* Digital signature operations
+* Part registration
+* Part verification
+* Security event retrieval
+* G-code threat analysis
+* Compliance reporting
+* Dashboard statistics
+
+### Framework
+
+Flask
+
+### Authentication
+
+JWT-based authentication.
+
+### Major API Endpoints
+
+#### Authentication
+
+```http
+POST /api/auth/login
+```
+
+Returns authentication token.
+
+---
+
+#### Quality Inspection
+
+```http
+POST /api/quality/inspect
+```
+
+Submits images for defect analysis.
+
+---
+
+#### Intellectual Property
+
+```http
+POST /api/ip/encrypt
+POST /api/ip/sign
+```
+
+Protects design files.
+
+---
+
+#### Supply Chain
+
+```http
+POST /api/supply-chain/register-part
+POST /api/supply-chain/verify-part
+```
+
+Blockchain verification.
+
+---
+
+#### Security
+
+```http
+POST /api/security/analyze-gcode
+GET /api/security/events
+```
+
+Threat analysis.
+
+---
+
+#### Compliance
+
+```http
+GET /api/compliance/report
+```
+
+Generates compliance evidence.
+
+---
+
+#### Dashboard
+
+```http
+GET /api/dashboard/stats
+```
+
+Returns operational metrics.
+
+---
+
+## backend/ml/defect_detector.py
+
+### Purpose
+
+AI-powered print quality analysis engine.
+
+### Features
+
+* CNN defect classification
+* YOLO defect localization
+* OpenCV preprocessing
+* Predictive quality scoring
+
+### Defect Categories
+
+* Normal
+* Warping
+* Stringing
+* Layer Shift
+* Under-extrusion
+* Nozzle Clogging
+
+### Processing Pipeline
+
+1. Image ingestion
+2. Image preprocessing
+3. CNN inference
+4. Defect localization
+5. Quality score generation
+6. Result reporting
+
+### Technologies
+
+* TensorFlow
+* Keras
+* OpenCV
+* NumPy
+* Scikit-Learn
+
+### Output
+
+```json
+{
+  "defect_type": "warping",
+  "confidence": 0.97,
+  "quality_score": 83
+}
+```
+
+---
+
+## backend/ml/ip_protection.py
+
+### Purpose
+
+Protects digital manufacturing assets.
+
+### Features
+
+#### AES-256-GCM Encryption
+
+Secures CAD and manufacturing files.
+
+#### RSA Digital Signatures
+
+Provides authenticity validation.
+
+#### Invisible Watermarking
+
+Embeds ownership metadata.
+
+#### Perceptual Hashing
+
+Detects unauthorized duplication.
+
+#### Content Addressing
+
+Supports distributed storage systems.
+
+### Supported Formats
+
+* STL
+* STEP
+* OBJ
+
+### Security Functions
+
+| Function  | Purpose             |
+| --------- | ------------------- |
+| Encrypt   | Confidentiality     |
+| Sign      | Authenticity        |
+| Verify    | Integrity           |
+| Watermark | Ownership           |
+| Hash      | Duplicate detection |
+
+---
+
+## backend/ml/anomaly_detector.py
+
+### Purpose
+
+Manufacturing cybersecurity monitoring engine.
+
+### Features
+
+#### G-Code Security Analysis
+
+Detects malicious instructions.
+
+Examples:
+
+* Temperature attacks
+* Feed-rate manipulation
+* Firmware exploits
+* Extrusion abuse
+
+#### Statistical Process Control
+
+Monitors manufacturing consistency.
+
+#### Telemetry Analysis
+
+Evaluates operational data streams.
+
+#### Isolation Forest Detection
+
+Identifies abnormal behavior patterns.
+
+#### Incident Logging
+
+Creates forensic records.
+
+### Severity Levels
+
+* INFO
+* LOW
+* MEDIUM
+* HIGH
+* CRITICAL
+
+### Security Event Database
+
+Stores incidents for investigation and reporting.
+
+---
+
+## backend/blockchain/fabric_client.py
+
+### Purpose
+
+Blockchain-based supply-chain authentication layer.
+
+### Features
+
+#### Manufacturing Fingerprints
+
+Creates SHA-256 identifiers for parts.
+
+#### Tamper-Evident Ledger
+
+Maintains immutable event history.
+
+#### Merkle Tree Validation
+
+Ensures record integrity.
+
+#### Counterfeit Detection
+
+Validates authenticity.
+
+#### Quality Certification
+
+Stores inspection evidence.
+
+### Core Operations
+
+#### Register Part
+
+Creates blockchain record.
+
+#### Verify Part
+
+Checks authenticity.
+
+#### Retrieve History
+
+Returns lifecycle events.
+
+### Benefits
+
+* Traceability
+* Auditability
+* Counterfeit prevention
+* Chain-of-custody tracking
+
+---
+
+## frontend/dashboard.html
+
+### Purpose
+
+User-facing monitoring dashboard.
+
+### Displays
+
+* Security metrics
+* Defect statistics
+* Compliance status
+* Manufacturing events
+* Blockchain verification results
+
+### Audience
+
+* Security teams
+* Manufacturing engineers
+* Compliance officers
+* Executives
+
+---
+
+## backend/monitoring/scripts/01_setup_environment.sh
+
+### Purpose
+
+Automated environment provisioning.
+
+### Installs
+
+#### Runtime
+
+* Python
+* Virtual environments
+
+#### Infrastructure
+
+* Docker
+* Docker Compose
+
+#### Databases
+
+* PostgreSQL
+* Redis
+
+#### Reverse Proxy
+
+* NGINX
+
+#### AI Dependencies
+
+* TensorFlow prerequisites
+* OpenCV dependencies
+
+#### OCR
+
+* Tesseract
+
+### Optional
+
+CUDA GPU acceleration.
+
+---
+
+## tests/test_all.py
+
+### Purpose
+
+Comprehensive platform validation.
+
+### Coverage
+
+#### AI Quality Control
+
+* Model loading
+* Inference execution
+
+#### IP Protection
+
+* Encryption
+* Signing
+* Verification
+
+#### Blockchain
+
+* Registration
+* Verification
+
+#### Security Monitoring
+
+* G-code analysis
+* Incident generation
+
+#### API Validation
+
+* Endpoint testing
+
+### Framework
+
+PyTest
+
+---
+
+# Infrastructure Documentation
+
+---
+
+## docker/docker-compose.yml
+
+### Purpose
+
+Container orchestration.
+
+### Services
+
+#### API Service
+
+Hosts SecurePrint backend.
+
+#### PostgreSQL
+
+Persistent storage.
+
+#### Redis
+
+Caching and queue management.
+
+### Features
+
+* Health checks
+* Automatic restart
+* Persistent volumes
+* Network isolation
+
+---
+
+## docker/.gitlab-ci.yml
+
+### Purpose
+
+GitLab CI/CD automation.
+
+### Pipeline Stages
+
+1. Build
+2. Test
+3. Security Scan
+4. Compliance Validation
+5. Deploy
+
+### Security Controls
+
+* Static analysis
+* Dependency scanning
+* Coverage checks
+
+---
+
+## Jenkinsfile
+
+### Purpose
+
+Jenkins automation pipeline.
+
+### Pipeline Flow
+
+```text
+Checkout
+   ↓
+Install
+   ↓
+Security Scan
+   ↓
+Testing
+   ↓
+Compliance Validation
+   ↓
+Deployment
+```
+
+---
+
+# Security Model
+
+## Defense Layers
+
+### Layer 1
+
+Design protection.
+
+### Layer 2
+
+AI defect detection.
+
+### Layer 3
+
+Manufacturing anomaly detection.
+
+### Layer 4
+
+Blockchain authentication.
+
+### Layer 5
+
+Compliance auditing.
+
+---
+
+# Deployment Workflow
+
+```text
+Environment Setup
+       ↓
+Install Dependencies
+       ↓
+Start Databases
+       ↓
+Launch API
+       ↓
+Launch Dashboard
+       ↓
+Run Tests
+       ↓
+Enable CI/CD
+```
+
+---
+
+# Recommended Startup Order
+
+1. Run environment setup script
+2. Install dependencies
+3. Start PostgreSQL and Redis
+4. Launch API service
+5. Launch dashboard
+6. Execute test suite
+7. Enable CI/CD pipelines
+
+---
+
+# Operational Use Cases
+
+### Aerospace Manufacturing
+
+Quality certification and traceability.
+
+### Medical Devices
+
+Regulatory compliance and auditability.
+
+### Defense Production
+
+Counterfeit prevention and chain-of-custody.
+
+### Industrial Manufacturing
+
+Secure production monitoring.
+
+### Research Environments
+
+IP protection and experiment validation.
+
+---
+
+# Future Enhancements
+
+* Hyperledger Fabric integration
+* Kubernetes deployment
+* Real-time telemetry streaming
+* Multi-tenant architecture
+* Digital twin integration
+* Advanced AI localization models
