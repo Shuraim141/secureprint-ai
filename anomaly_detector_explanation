@@ -1,0 +1,544 @@
+Manufacturing Process Security & Anomaly Detection
+Overview
+This module implements the Manufacturing Process Security Layer of SecurePrint AI. Its purpose is to continuously monitor the additive manufacturing process, detect malicious modifications, identify abnormal printer behavior, and automatically respond to security incidents before defective or unsafe parts are produced.
+The system combines four complementary security mechanisms:
+1. G-code Security Analysis — Detects malicious or unsafe commands inside print files.
+2. Statistical Process Control (SPC) — Detects process drift and quality degradation.
+3. Isolation Forest Anomaly Detection — Identifies unusual telemetry patterns using machine learning.
+4. SIEM-Based Incident Response — Logs security events and triggers automated mitigation actions.
+Together, these components provide real-time protection against cyberattacks, sabotage, configuration tampering, and manufacturing defects.
+________________
+
+
+5.1 G-Code Security Analyzer
+Purpose
+Before a print begins, the platform analyzes the uploaded G-code file to determine whether it contains unsafe instructions, modified parameters, or signs of tampering.
+This is important because an attacker can manipulate G-code without changing the visual appearance of the CAD model.
+Examples include:
+* Increasing nozzle temperature to dangerous levels
+* Modifying feed rates
+* Resetting printer firmware settings
+* Triggering unexpected machine behavior
+* Corrupting production quality
+________________
+
+
+Safe Operating Ranges
+The analyzer defines acceptable operating limits for common materials.
+SAFE_RANGES = {
+    "PLA":  (175, 230),
+    "ABS":  (220, 260),
+    "PETG": (220, 250),
+    "TPU":  (200, 240)
+}
+These limits act as baseline security policies.
+If a command exceeds these thresholds, the file is flagged.
+________________
+
+
+Dangerous Command Detection
+The system maintains a list of high-risk G-code commands.
+DANGEROUS_COMMANDS = [
+    "M303",
+    "SAVE_CONFIG",
+    "M500",
+    "M502",
+    "FIRMWARE_RESTART"
+]
+Examples:
+M303
+PID auto-tuning can alter thermal behavior and potentially cause overheating.
+SAVE_CONFIG
+Can permanently modify printer configuration.
+M500
+Writes settings to EEPROM.
+FIRMWARE_RESTART
+Restarts firmware during operation and may disrupt production.
+________________
+
+
+File Integrity Verification
+The analyzer calculates a SHA-256 hash.
+actual_hash = hashlib.sha256(content.encode()).hexdigest()
+The hash is compared against the expected signed version.
+If they differ:
+integrity_ok = False
+A FILE_TAMPERED alert is generated.
+________________
+
+
+Temperature Security Checks
+The system searches for commands such as:
+M104 S350
+Meaning:
+Set nozzle temperature to 350°C
+Because SecurePrint AI enforces a maximum safe temperature of 300°C:
+if temp > 300:
+the command is classified as critical.
+Possible consequences:
+* Fire risk
+* Material degradation
+* Equipment damage
+________________
+
+
+Feed Rate Validation
+The analyzer extracts motion commands:
+G1 X100 Y100 F20000
+and validates:
+feed_rate < 15000 mm/min
+Excessive speeds may cause:
+* Layer shifting
+* Structural defects
+* Mechanical stress
+________________
+
+
+Risk Score Calculation
+The analyzer computes a cumulative risk score.
+risk_score =
+critical_alerts × 0.4
++ high_alerts × 0.2
++ violations × 0.15
+Output range:
+0.0 → Safe
+1.0 → Critical
+________________
+
+
+Recommendation Engine
+Based on risk score:
+Risk Score
+	Action
+	< 0.2
+	SAFE_TO_PRINT
+	0.2 – 0.5
+	PROCEED_WITH_CAUTION
+	> 0.5
+	BLOCK_PRINT
+	This prevents unsafe files from reaching production.
+________________
+
+
+5.2 Statistical Process Control (SPC)
+Purpose
+Even when a G-code file is safe, the manufacturing process itself may gradually drift.
+Examples:
+* Temperature instability
+* Calibration degradation
+* Sensor inaccuracies
+* Mechanical wear
+SPC continuously evaluates process stability.
+________________
+
+
+Rolling Window Monitoring
+The controller stores recent measurements.
+self.history[parameter]
+Examples:
+Nozzle Temperature
+Bed Temperature
+Flow Rate
+Extrusion Rate
+A moving window of measurements is analyzed.
+________________
+
+
+Rule 1 — Three Sigma Rule
+abs(value - mean) > 3 * std
+Meaning:
+A value lies more than three standard deviations away from normal operation.
+Example:
+Normal = 200°C
+Observed = 215°C
+This indicates an outlier.
+Severity:
+HIGH
+________________
+
+
+Rule 2 — Nine Consecutive Points
+If nine measurements remain on the same side of the mean:
+all(x > mean)
+the process is drifting.
+Example:
+200
+201
+202
+203
+204
+205
+206
+207
+208
+This may indicate:
+* Heater degradation
+* Sensor bias
+* Calibration issues
+Severity:
+MEDIUM
+________________
+
+
+Rule 3 — Six Consecutive Trends
+The controller detects monotonic behavior.
+Example:
+200
+201
+202
+203
+204
+205
+This indicates an upward trend.
+Potential causes:
+* Thermal runaway
+* Hardware degradation
+* Environmental changes
+________________
+
+
+Process Capability Index (Cpk)
+The system evaluates manufacturing capability.
+Formula:
+Cpk = min(CPU, CPL)
+Interpretation:
+Cpk
+	Meaning
+	>1.67
+	Six Sigma
+	>1.33
+	Capable
+	>1.0
+	Marginal
+	<1.0
+	Incapable
+	This metric is widely used in aerospace and medical manufacturing.
+________________
+
+
+5.3 Isolation Forest Anomaly Detection
+Purpose
+Not all attacks follow known signatures.
+For example:
+* Sensor spoofing
+* Firmware manipulation
+* Novel cyberattacks
+* Insider sabotage
+These may appear as unusual telemetry patterns.
+To detect such threats, SecurePrint AI uses Isolation Forest, an unsupervised machine learning algorithm.
+________________
+
+
+Why Isolation Forest?
+Traditional ML requires labeled attack data.
+Isolation Forest does not.
+Advantages:
+* Works with normal operational data only
+* Detects unknown attacks
+* Suitable for industrial environments
+________________
+
+
+Telemetry Features
+The model evaluates:
+[
+ nozzle_temp,
+ bed_temp,
+ extrusion_rate,
+ fan_speed,
+ print_speed,
+ layer_height,
+ x_jerk,
+ y_jerk,
+ flow_rate
+]
+These parameters represent the printer’s operational state.
+________________
+
+
+Training Phase
+The model learns normal behavior.
+detector.train(normal_telemetry)
+Example:
+500 normal print samples
+The algorithm establishes baseline patterns.
+________________
+
+
+Prediction Phase
+Incoming telemetry is evaluated.
+pred = detector.predict(data)
+Output:
+{
+ "is_anomaly": True,
+ "anomaly_score": 0.91
+}
+________________
+
+
+Sabotage Simulation Example
+The demo intentionally introduces:
+{
+ "nozzle_temp": 350,
+ "bed_temp": 150,
+ "flow_rate": 300,
+ "fan_speed": 0
+}
+These values differ significantly from normal behavior.
+Isolation Forest isolates them rapidly and classifies them as anomalous.
+________________
+
+
+Risk Classification
+Score
+	Risk
+	<0.4
+	LOW
+	0.4–0.6
+	MEDIUM
+	0.6–0.8
+	HIGH
+	>0.8
+	CRITICAL
+	This provides a quantitative security assessment.
+________________
+
+
+5.4 Security Event Manager (SIEM)
+Purpose
+After threats are detected, they must be recorded, correlated, and acted upon.
+The Security Event Manager functions as a lightweight SIEM.
+Production deployments can later integrate:
+* Splunk
+* ELK Stack
+* Wazuh
+* Microsoft Sentinel
+________________
+
+
+Event Storage
+Security events are stored inside SQLite.
+security_events
+Each event contains:
+Event ID
+Severity
+Source
+Description
+Timestamp
+Response Actions
+This creates a forensic audit trail.
+________________
+
+
+Event Logging Workflow
+When an alert occurs:
+siem.log_event(...)
+the system:
+1. Creates a unique event ID
+2. Stores event details
+3. Determines response actions
+4. Executes automated mitigation
+________________
+
+
+Automated Response Engine
+Critical Events
+Example:
+Nozzle Temperature = 350°C
+Response:
+[
+ STOP_PRINTER,
+ QUARANTINE_FILE,
+ ALERT_SECURITY_TEAM,
+ LOCK_DESIGN_ACCESS,
+ CREATE_INCIDENT_TICKET
+]
+________________
+
+
+High Severity Events
+Response:
+[
+ PAUSE_PRINTER,
+ FLAG_FOR_REVIEW,
+ ALERT_OPERATOR
+]
+________________
+
+
+Medium Severity Events
+Response:
+[
+ LOG_AND_MONITOR,
+ ALERT_OPERATOR
+]
+________________
+
+
+Emergency Stop Capability
+For critical incidents:
+_send_octoprint_command("M112")
+M112 is the standard emergency stop command.
+In production:
+SecurePrint AI
+→ OctoPrint API
+→ Printer
+→ Immediate Halt
+This prevents damaged or malicious parts from being manufactured.
+
+
+You can add this high-level ASCII architecture diagram to the GitHub documentation before the component explanations.
+┌───────────────────────────────────────────────────────────────┐
+│                 SecurePrint AI Security Engine               │
+│      Manufacturing Process Security & Anomaly Detection      │
+└───────────────────────────────────────────────────────────────┘
+                               │
+                               ▼
+┌───────────────────────────────────────────────────────────────┐
+│                    Incoming Print Job                         │
+│        G-Code File + Telemetry + Process Parameters           │
+└───────────────────────────────────────────────────────────────┘
+                               │
+                               ▼
+┌───────────────────────────────────────────────────────────────┐
+│                 5.1 G-Code Security Analyzer                  │
+├───────────────────────────────────────────────────────────────┤
+│ • Dangerous Command Detection                                │
+│ • Temperature Validation                                     │
+│ • Feed Rate Validation                                       │
+│ • File Integrity (SHA-256) Verification                      │
+│ • Risk Score Calculation                                     │
+└───────────────────────────────────────────────────────────────┘
+                               │
+                               ▼
+                    Security Assessment
+                               │
+                ┌──────────────┴──────────────┐
+                │                             │
+                ▼                             ▼
+        Safe / Low Risk                Suspicious File
+                │                             │
+                ▼                             ▼
+          Continue                     Generate Alerts
+                │
+                ▼
+┌───────────────────────────────────────────────────────────────┐
+│           Real-Time Manufacturing Monitoring                  │
+└───────────────────────────────────────────────────────────────┘
+                │                             │
+                │                             │
+                ▼                             ▼
+┌──────────────────────┐         ┌───────────────────────────┐
+│ 5.2 SPC Controller   │         │ 5.3 Isolation Forest ML   │
+├──────────────────────┤         ├───────────────────────────┤
+│ • Control Charts     │         │ • Unsupervised Learning   │
+│ • Process Drift      │         │ • Telemetry Monitoring    │
+│ • Trend Detection    │         │ • Anomaly Detection       │
+│ • Cpk Analysis       │         │ • Risk Classification     │
+└──────────────────────┘         └───────────────────────────┘
+                │                             │
+                └──────────────┬──────────────┘
+                               │
+                               ▼
+┌───────────────────────────────────────────────────────────────┐
+│               Security Event Correlation Layer               │
+└───────────────────────────────────────────────────────────────┘
+                               │
+                               ▼
+┌───────────────────────────────────────────────────────────────┐
+│                5.4 Security Event Manager (SIEM)             │
+├───────────────────────────────────────────────────────────────┤
+│ • Event Logging (SQLite)                                     │
+│ • Alert Correlation                                          │
+│ • Incident Tracking                                          │
+│ • Automated Response Engine                                  │
+└───────────────────────────────────────────────────────────────┘
+                               │
+                ┌──────────────┼──────────────┐
+                │              │              │
+                ▼              ▼              ▼
+      STOP_PRINTER     QUARANTINE_FILE   ALERT_TEAM
+                │              │              │
+                └──────────────┴──────────────┘
+                               │
+                               ▼
+┌───────────────────────────────────────────────────────────────┐
+│                  Security Decision Layer                      │
+├───────────────────────────────────────────────────────────────┤
+│ SAFE_TO_PRINT                                                 │
+│ PROCEED_WITH_CAUTION                                          │
+│ BLOCK_PRINT                                                   │
+└───────────────────────────────────────────────────────────────┘
+Architecture Flow
+G-Code File
+     │
+     ▼
+G-Code Security Analyzer
+     │
+     ▼
+Integrity + Command Validation
+     │
+     ▼
+Real-Time Telemetry Stream
+     │
+     ├────────► SPC Engine
+     │
+     └────────► Isolation Forest
+                    │
+                    ▼
+             Anomaly Alerts
+                    │
+                    ▼
+             SIEM Correlation
+                    │
+                    ▼
+        Automated Security Response
+                    │
+                    ▼
+      Stop Print / Alert / Quarantine
+This diagram clearly shows the four major modules in your code:
+G-Code Security Analyzer → SPC Controller → Isolation Forest Detector → SIEM Response Engine, which aligns well with a defense-in-depth architecture for SecurePrint AI.
+The Manufacturing Process Security Engine demonstrates how cybersecurity, artificial intelligence, and quality assurance can be integrated into a unified framework for additive manufacturing. By combining preventive, detective, and responsive security controls, SecurePrint AI establishes a foundation for secure, intelligent, and trustworthy next-generation manufacturing systems. 
+
+Future Enhancements
+While the current implementation demonstrates a functional security monitoring framework, several enhancements can further improve the platform's capabilities:
+Advanced AI-Based Detection
+* Deploy deep learning models such as LSTM and Transformer architectures for time-series anomaly detection.
+* Implement predictive maintenance using telemetry trends and historical equipment behavior.
+* Introduce adaptive risk scoring that learns from previous incidents.
+Digital Twin Integration
+* Develop a real-time digital twin of the printer and manufacturing environment.
+* Compare expected behavior against actual machine behavior to identify deviations instantly.
+* Simulate attacks and process failures before physical production begins.
+Blockchain and Traceability
+* Integrate Hyperledger Fabric or enterprise blockchain platforms.
+* Store immutable records of design approvals, print events, and security incidents.
+* Enable end-to-end part provenance and compliance auditing.
+Enterprise SIEM Integration
+* Forward security events to enterprise platforms such as Splunk, ELK Stack, Wazuh, or Microsoft Sentinel.
+* Support Security Orchestration, Automation, and Response (SOAR) workflows.
+* Enable centralized monitoring across multiple manufacturing facilities.
+Zero Trust Manufacturing
+* Extend device authentication using hardware-rooted identities and PUF-based trust mechanisms.
+* Implement continuous authorization and least-privilege access controls.
+* Integrate with NIST Zero Trust Architecture principles.
+Industrial IoT Expansion
+* Support multiple printers and production lines simultaneously.
+* Collect telemetry from additional Industrial IoT sensors.
+* Build plant-wide security visibility and anomaly detection.
+Cloud-Native Deployment
+* Containerize monitoring services using Docker.
+* Deploy scalable microservices on Kubernetes.
+* Enable high availability and distributed manufacturing environments.
+Regulatory Compliance
+* Align security controls with:
+   * NIST SP 800-207 (Zero Trust)
+   * NIST SP 800-53
+   * IEC 62443
+   * ISO 27001
+   * Aerospace and Medical Manufacturing Standards
+________________
+
+
+Final Outcome
+The Manufacturing Process Security Engine demonstrates how cybersecurity, artificial intelligence, and quality assurance can be integrated into a unified framework for additive manufacturing. By combining preventive, detective, and responsive security controls, SecurePrint AI establishes a foundation for secure, intelligent, and trustworthy next-generation manufacturing systems.
