@@ -1,0 +1,413 @@
+﻿This file is a Flask-based REST API backend for a system called SecurePrint AI Platform, which appears to manage secure industrial/3D printing workflows.
+At a high level, it combines:
+* Authentication & authorization (JWT tokens)
+* AI-based print quality inspection
+* Design file encryption and digital signing
+* Supply-chain traceability
+* Security monitoring
+* Compliance reporting
+* Dashboard metrics
+________________
+
+
+1. Application Setup
+app = Flask(__name__)
+Creates the Flask web server.
+Configuration:
+app.config.update(
+    JWT_SECRET_KEY=...,
+    JWT_ACCESS_TOKEN_EXPIRES=datetime.timedelta(hours=8),
+    MAX_CONTENT_LENGTH=500 * 1024 * 1024,
+    UPLOAD_FOLDER="/opt/secureprint/uploads",
+)
+Meaning:
+Setting
+	Purpose
+	JWT_SECRET_KEY
+	Signs JWT authentication tokens
+	JWT_ACCESS_TOKEN_EXPIRES
+	Tokens expire after 8 hours
+	MAX_CONTENT_LENGTH
+	Maximum upload size = 500MB
+	UPLOAD_FOLDER
+	Location for uploaded files
+	________________
+
+
+2. CORS
+CORS(app, resources={r"/api/*": {"origins": "*"}})
+Allows frontend applications from other domains to call the API.
+Example:
+fetch("http://localhost:5000/api/auth/login")
+would work even from another website.
+________________
+
+
+3. JWT Authentication
+jwt = JWTManager(app)
+JWT = JSON Web Token.
+Workflow:
+Login
+User sends:
+{
+  "username": "admin",
+  "password": "Admin@SecurePrint2024!"
+}
+Server:
+1. Verifies credentials
+2. Generates token
+token = create_access_token(...)
+Returns:
+{
+  "access_token": "...",
+  "role": "admin"
+}
+Later requests include:
+Authorization: Bearer <token>
+Protected endpoints use:
+@jwt_required()
+________________
+
+
+4. User Store
+USERS = {
+    "admin": {...},
+    "designer": {...}
+}
+Simple in-memory user database.
+Passwords are stored as SHA256 hashes:
+hashlib.sha256(password.encode()).hexdigest()
+Example:
+Admin@SecurePrint2024!
+becomes:
+5f6d...
+Production concern
+Comment already notes:
+use PostgreSQL + bcrypt in production
+because:
+* SHA256 alone is not ideal for password storage
+* bcrypt/Argon2 are safer
+________________
+
+
+5. Rate Limiting
+Decorator:
+@rate_limit(max_calls=10, window_seconds=60)
+Protects endpoints from abuse.
+Example:
+POST /api/auth/login
+limited to:
+10 requests/minute/IP
+Mechanism:
+_rate_limit_store[key]
+stores timestamps.
+Old requests are removed:
+if now - t < window_seconds
+If limit exceeded:
+429 Too Many Requests
+________________
+
+
+6. Audit Logging
+Function:
+audit_log(...)
+Creates immutable audit records.
+Example entry:
+{
+  "timestamp":"...",
+  "user_id":"admin",
+  "action":"LOGIN",
+  "result":"SUCCESS"
+}
+Stored in:
+/opt/secureprint/logs/audit.jsonl
+JSONL = one JSON object per line.
+Useful for:
+* ISO 9001
+* AS9100D
+* Security investigations
+________________
+
+
+7. Authentication Endpoint
+POST /api/auth/login
+@app.route("/api/auth/login")
+Flow:
+1. Read username/password
+2. Hash password
+3. Compare with stored hash
+4. Create JWT token
+Success:
+{
+  "access_token": "...",
+  "username": "admin",
+  "role": "admin"
+}
+Failure:
+{
+  "error": "Invalid credentials"
+}
+________________
+
+
+8. AI Quality Inspection
+POST /api/quality/inspect
+Protected:
+@jwt_required()
+Accepts:
+* image file
+* printer_id
+* layer_num
+Example:
+POST /api/quality/inspect
+with image upload.
+________________
+
+
+Processing
+Creates temporary file:
+tempfile.NamedTemporaryFile()
+Runs ML components:
+from ml.defect_detector import ...
+Pipeline:
+image
+  ↓
+preprocess
+  ↓
+feature extraction
+  ↓
+classifier.predict()
+Possible defects:
+NORMAL
+WARPING
+STRINGING
+LAYER_SHIFT
+CLOGGING
+Returns:
+{
+  "inspection": {
+    "defect_class": "NORMAL",
+    "confidence": 0.97
+  }
+}
+________________
+
+
+Fallback Mode
+If ML model isn't available:
+except Exception:
+returns simulated results.
+Useful for demos.
+________________
+
+
+9. Design Encryption
+POST /api/ip/encrypt
+Purpose:
+Protect CAD/design files.
+Allowed roles:
+admin
+designer
+Checks:
+if identity["role"] not in ("admin","designer")
+Then:
+DesignEncryptor()
+encrypts:
+design.stl
+into:
+design.stl.enc
+Returns encryption manifest.
+________________
+
+
+10. Digital Signing
+POST /api/ip/sign
+Uses:
+DesignSigner()
+Purpose:
+Verify:
+* who created file
+* file wasn't modified
+Conceptually:
+File
+  ↓
+Hash
+  ↓
+RSA Private Key
+  ↓
+Signature
+Anyone can later verify signature using public key.
+________________
+
+
+11. Supply Chain Registration
+POST /api/supply-chain/register-part
+Uses:
+PartAuthenticator
+LocalLedger
+Registers manufactured part.
+Input:
+{
+  "design_id":"D100",
+  "printer_id":"P55"
+}
+Creates blockchain record.
+Returns:
+{
+  "part_id":"..."
+}
+Purpose:
+Track every produced part.
+________________
+
+
+12. Supply Chain Verification
+POST /api/supply-chain/verify-part
+Checks authenticity.
+Input:
+{
+  "part_id":"ABC123",
+  "fingerprint":"..."
+}
+Looks up blockchain record.
+Returns:
+{
+  "authentic": true
+}
+Useful for counterfeit detection.
+________________
+
+
+13. Security Events
+GET /api/security/events
+Admin-only:
+if identity["role"] != "admin":
+Retrieves SIEM/security events.
+Uses:
+SecurityEventManager()
+Example:
+{
+  "events":[...]
+}
+________________
+
+
+14. G-Code Security Analysis
+POST /api/security/analyze-gcode
+G-code controls printers:
+G1 X100 Y100
+M104 S200
+The API uploads a .gcode file and scans it.
+Uses:
+GCodeSecurityAnalyzer()
+Looks for:
+* dangerous commands
+* sabotage patterns
+* malicious modifications
+Returns risk assessment.
+________________
+
+
+15. Compliance Report
+GET /api/compliance/report
+Automatically generates compliance documentation.
+Standards included:
+ISO 9001
+AS9100D
+NIST SP 800-82
+ISO/ASTM 52900
+Returns:
+{
+  "overall_compliance_score":100
+}
+and detailed checks.
+Important note:
+These values are mostly hardcoded/demo values in this file rather than calculated from actual system data.
+________________
+
+
+16. Dashboard Statistics
+GET /api/dashboard/stats
+Returns metrics:
+{
+  "quality_control": {...},
+  "security": {...},
+  "supply_chain": {...}
+}
+Used by frontend dashboards.
+Currently simulated:
+847 inspections_today
+4821 parts_tracked
+No database query exists here.
+________________
+
+
+17. Health Check
+GET /health
+Simple monitoring endpoint:
+{
+  "status":"healthy"
+}
+Used by:
+* Kubernetes
+* Docker
+* Load balancers
+to verify service availability.
+________________
+
+
+18. Error Handling
+404:
+@app.errorhandler(404)
+Returns:
+{
+  "error":"Endpoint not found"
+}
+500:
+@app.errorhandler(500)
+Returns:
+{
+  "error":"Internal server error"
+}
+JWT errors:
+Token expired
+Invalid token
+handled globally.
+________________
+
+
+Overall Architecture
+               Frontend
+                    │
+                    ▼
+           Flask REST API
+                    │
+ ┌──────────────────┼──────────────────┐
+ │                  │                  │
+ ▼                  ▼                  ▼
+ Authentication   ML Models      Blockchain
+ (JWT)           (Defect AI)   (Part Tracking)
+ │                  │                  │
+ ▼                  ▼                  ▼
+ Audit Logs     Quality Metrics   Authenticity
+                    │
+                    ▼
+            Compliance Reports
+Strengths
+✅ JWT authentication
+✅ Role-based access control
+✅ Audit logging
+✅ Rate limiting
+✅ File upload handling
+✅ Modular architecture (ML, blockchain, monitoring separated)
+✅ Temporary file cleanup with finally
+Production Improvements Needed
+⚠️ Replace in-memory users with PostgreSQL
+⚠️ Use bcrypt/Argon2 instead of plain SHA-256 for passwords
+⚠️ Replace in-memory rate limiter with Redis
+⚠️ Add database persistence for reports/stats
+⚠️ Restrict CORS origins ("*" is too permissive)
+⚠️ Validate uploaded filenames (secure_filename)
+⚠️ Add MFA and refresh tokens
+⚠️ Store audit logs in a tamper-evident database/SIEM
+A useful next step would be to walk through a complete request flow (login → obtain JWT → call /api/quality/inspect) so you can see exactly how the authentication and endpoint interactions work in practice.
