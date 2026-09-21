@@ -1,0 +1,332 @@
+﻿This is a large SecurePrint AI dashboard application. For a presentation, viva, or report, these are the main code sections and what they do.
+1. Authentication & API Connection ⭐
+const API = 'http://localhost:5000';
+let TOKEN = null;
+
+
+async function doLogin() {
+  const r = await fetch(`${API}/api/auth/login`, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({username:u, password:p})
+  });
+
+
+  const d = await r.json();
+
+
+  if (d.access_token) {
+    TOKEN = d.access_token;
+    loadDashboard();
+  }
+}
+Explanation
+* Connects frontend to backend API.
+* Sends username and password.
+* Receives JWT access token.
+* Stores token for secure API requests.
+* Loads dashboard after successful login.
+________________
+
+
+2. Navigation System ⭐
+function showPage(id, el) {
+  document.querySelectorAll('.page')
+    .forEach(p => p.classList.remove('active'));
+
+
+  document.querySelectorAll('.nav-item')
+    .forEach(n => n.classList.remove('active'));
+
+
+  document.getElementById('page-'+id)
+    .classList.add('active');
+
+
+  if(el) el.classList.add('active');
+}
+Explanation
+* Controls page switching.
+* Shows selected module.
+* Hides all other pages.
+* Creates a Single Page Application (SPA) experience.
+________________
+
+
+3. Dashboard Data Loading ⭐
+async function loadDashboard() {
+  const r = await fetch(
+    `${API}/api/dashboard/stats`,
+    {headers: authHeaders()}
+  );
+
+
+  const d = await r.json();
+
+
+  document.getElementById('stat-inspections')
+    .textContent = d.quality_control.inspections_today;
+}
+Explanation
+* Retrieves real-time statistics.
+* Updates dashboard cards.
+* Displays inspections, defect rate, parts tracked, and events.
+* Connects frontend to live manufacturing data.
+________________
+
+
+4. AI Defect Detection Module ⭐⭐⭐
+function simulateInspection(type) {
+
+
+  const result = {
+    defect_class: isNormal ? 'NORMAL' : 'WARPING',
+    confidence: isNormal ? 0.97 : 0.87,
+    is_defective: !isNormal
+  };
+
+
+  showDefectResult(result);
+}
+Explanation
+* Simulates CNN-based defect detection.
+* Detects defects like:
+   * Warping
+   * Stringing
+   * Layer Shift
+   * Clogging
+* Produces confidence score.
+* Mimics AI image classification results.
+________________
+
+
+5. Defect Result Visualization ⭐
+function showDefectResult(d) {
+  badge.textContent = d.defect_class;
+
+
+  const action =
+    d.is_defective
+      ? '⛔ PAUSE PRINT'
+      : '✅ Continue printing';
+}
+Explanation
+* Displays AI prediction.
+* Shows confidence level.
+* Provides operator action.
+* Highlights defects in red and normal parts in green.
+________________
+
+
+6. Predictive Analytics & Anomaly Detection ⭐⭐⭐
+function analyzeTelemetry(anomalous) {
+
+
+  const vals = anomalous
+    ? {nozzle:350, bed:150, risk:'CRITICAL'}
+    : {nozzle:200, bed:60, risk:'LOW'};
+}
+Explanation
+* Simulates sensor telemetry.
+* Monitors:
+   * Nozzle temperature
+   * Bed temperature
+   * Print speed
+   * Extrusion rate
+* Detects abnormal conditions before failure.
+* Supports predictive maintenance.
+________________
+
+
+7. Isolation Forest Risk Analysis ⭐
+if(anomalous) {
+   addLog('crit',
+   'AUTO-STOP triggered (M112)');
+}
+Explanation
+* Represents machine learning anomaly detection.
+* Detects unusual process behavior.
+* Triggers automatic emergency stop.
+* Prevents defective or unsafe prints.
+________________
+
+
+8. Design Encryption Module ⭐⭐⭐
+function simulateEncrypt() {
+
+
+  document.getElementById('enc-result')
+    .innerHTML = `
+      AES-256-GCM
+      SHA-256
+      PBKDF2-SHA256
+    `;
+}
+Explanation
+* Protects intellectual property.
+* Uses:
+   * AES-256-GCM encryption
+   * SHA-256 hashing
+   * PBKDF2 key derivation
+* Prevents unauthorized access to 3D designs.
+________________
+
+
+9. Digital Signing & Watermarking ⭐⭐
+function simulateSign() {
+
+
+  const sig = ...;
+  const wm = ...;
+
+
+}
+Explanation
+* Generates digital signatures.
+* Adds invisible watermark.
+* Verifies design ownership.
+* Detects tampering and piracy.
+________________
+
+
+10. Blockchain Supply Chain Tracking ⭐⭐⭐
+async function registerPart() {
+
+
+  const partId = 'PART-' + randomID();
+
+
+  chain.innerHTML += `
+      Block #${blockNum}
+      PART_MANUFACTURED
+  `;
+}
+Explanation
+* Registers manufactured parts.
+* Creates blockchain records.
+* Tracks:
+   * Design
+   * Manufacturing
+   * Certification
+   * Shipment
+* Ensures traceability.
+________________
+
+
+11. Part Verification System ⭐⭐
+function verifyPart(authentic) {
+
+
+  if(authentic) {
+      "AUTHENTIC PART CONFIRMED";
+  } else {
+      "COUNTERFEIT DETECTED";
+  }
+}
+Explanation
+* Validates part fingerprints.
+* Compares with blockchain records.
+* Detects counterfeit components.
+* Useful for aerospace and medical industries.
+________________
+
+
+12. G-Code Security Scanner ⭐⭐⭐
+function simulateGcode(malicious) {
+
+
+  if(malicious) {
+      "BLOCK PRINT";
+  }
+}
+Explanation
+* Checks G-code before printing.
+* Detects:
+   * Unsafe temperatures
+   * Firmware modifications
+   * Hash mismatches
+   * Malicious commands
+* Prevents sabotage attacks.
+________________
+
+
+13. Security Event Manager (SIEM) ⭐
+async function loadEvents() {
+  const r = await fetch(
+    `${API}/api/security/events`
+  );
+}
+Explanation
+* Collects security incidents.
+* Shows severity levels.
+* Supports cybersecurity monitoring.
+* Helps audit investigations.
+________________
+
+
+14. Audit Trail System ⭐⭐
+async function loadAudit() {
+
+
+  log.innerHTML = `
+    LOGIN
+    ENCRYPT_DESIGN
+    REGISTER_PART
+  `;
+}
+Explanation
+* Records all user actions.
+* Maintains traceability.
+* Supports ISO compliance.
+* Useful for audits and investigations.
+________________
+
+
+15. Compliance Reporting ⭐⭐
+function downloadReport() {
+
+
+  const content = `
+     ISO 9001
+     AS9100D
+     NIST SP 800-82
+  `;
+}
+Explanation
+* Generates compliance reports.
+* Tracks industry standards.
+* Supports certification requirements.
+* Automates documentation.
+________________
+
+
+Architecture Summary (Most Important for Viva/Report)
+User
+ ↓
+Frontend Dashboard (HTML/CSS/JS)
+ ↓
+REST API (Flask Backend)
+ ↓
+AI Modules
+ ├─ Defect Detection CNN
+ ├─ Predictive Analytics
+ ├─ Isolation Forest
+ ↓
+Security Modules
+ ├─ AES-256 Encryption
+ ├─ RSA Signatures
+ ├─ Watermarking
+ ├─ G-Code Scanner
+ ↓
+Blockchain Ledger
+ ↓
+Compliance & Audit Reports
+Key Features to Mention
+1. AI Defect Detection using Computer Vision.
+2. Predictive Analytics using Isolation Forest.
+3. AES-256 + RSA-4096 Security for IP protection.
+4. Blockchain Traceability for supply chain tracking.
+5. G-code Security Scanner for cyberattack prevention.
+6. Compliance & Audit Management for ISO/NIST standards.
+7. Real-time Dashboard integrating all modules.
+For a project report, these seven points are the highest-value sections to highlight and explain.
