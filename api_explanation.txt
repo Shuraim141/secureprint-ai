@@ -410,4 +410,3 @@ Production Improvements Needed
 ⚠️ Validate uploaded filenames (secure_filename)
 ⚠️ Add MFA and refresh tokens
 ⚠️ Store audit logs in a tamper-evident database/SIEM
-A useful next step would be to walk through a complete request flow (login → obtain JWT → call /api/quality/inspect) so you can see exactly how the authentication and endpoint interactions work in practice.
