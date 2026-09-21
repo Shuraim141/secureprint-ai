@@ -1,1 +1,629 @@
-﻿
+﻿This file implements a blockchain-inspired supply-chain tracking system for SecurePrint AI.
+The goal is to prove:
+* Who created a design
+* Who manufactured a part
+* Whether the part passed quality checks
+* Whether a part is authentic or counterfeit
+* Whether the historical records have been tampered with
+Think of it as a mini Hyperledger Fabric simulation built on SQLite, with a real Hyperledger Fabric chaincode implementation included for production use.
+________________
+
+
+High-Level Architecture
+Design File
+     │
+     ▼
+Register Design
+     │
+     ▼
+Manufacture Part
+     │
+     ▼
+Generate Fingerprint
+     │
+     ▼
+Store on Blockchain Ledger
+     │
+     ▼
+Quality Certification
+     │
+     ▼
+Verification
+     │
+     ▼
+Counterfeit Detection
+________________
+
+
+1. What This System Stores
+The ledger tracks:
+Designs
+TurbineBlade.stl
+Registered by a designer.
+________________
+
+
+Manufactured Parts
+PART-ABCD1234
+Created from a design.
+________________
+
+
+Certificates
+CERT-XYZ123
+Issued by QA inspectors.
+________________
+
+
+Transactions
+Every action becomes a blockchain transaction:
+DESIGN_REGISTERED
+PART_MANUFACTURED
+PART_CERTIFIED
+PART_SHIPPED
+PART_VERIFIED
+________________
+
+
+2. LocalLedger Class
+Main class:
+class LocalLedger:
+Acts like a blockchain.
+Instead of Hyperledger Fabric, it uses:
+sqlite3
+as storage.
+________________
+
+
+3. Database Schema
+The ledger creates four tables.
+________________
+
+
+Blocks Table
+CREATE TABLE blocks (...)
+Stores blockchain blocks.
+Fields:
+Field
+	Purpose
+	block_id
+	Block number
+	block_hash
+	Hash of block
+	prev_hash
+	Previous block hash
+	timestamp
+	Creation time
+	tx_count
+	Number of transactions
+	merkle_root
+	Merkle root
+	Example:
+Block #1
+Hash: A123...
+Prev: 0000...
+________________
+
+
+Transactions Table
+CREATE TABLE transactions (...)
+Stores blockchain transactions.
+Example:
+PART_MANUFACTURED
+with all metadata.
+________________
+
+
+Parts Table
+CREATE TABLE parts (...)
+Stores manufactured part records.
+Example:
+Part ID
+Manufacturer
+Material batch
+Status
+________________
+
+
+Certificates Table
+CREATE TABLE certificates (...)
+Stores QA certifications.
+Example:
+AS9100D certificate
+________________
+
+
+4. Genesis Block
+Every blockchain begins with a first block.
+Function:
+_ensure_genesis_block()
+Creates:
+genesis_hash = sha256(
+    "SECUREPRINT_GENESIS_BLOCK_2024"
+)
+Result:
+Block #0
+This becomes the root of the chain.
+________________
+
+
+5. Blockchain Linking
+Every block references the previous block.
+The code:
+block_hash = SHA256(
+    prev_hash +
+    merkle_root +
+    timestamp
+)
+Conceptually:
+Block 1
+Hash=A111
+
+
+Block 2
+Prev=A111
+Hash=B222
+
+
+Block 3
+Prev=B222
+Hash=C333
+If someone changes Block 1:
+A111 becomes X999
+Blocks 2 and 3 become invalid.
+This provides tamper evidence.
+________________
+
+
+6. Merkle Tree
+Function:
+_compute_merkle_root()
+A Merkle tree compresses many transaction hashes into one hash.
+Example:
+TX1
+TX2
+TX3
+TX4
+Hashes:
+H1
+H2
+H3
+H4
+Combined:
+SHA(H1+H2)
+SHA(H3+H4)
+Then:
+SHA(
+  SHA(H1+H2) +
+  SHA(H3+H4)
+)
+Result:
+Merkle Root
+Benefits:
+* Fast verification
+* Detects modifications
+* Common blockchain technique
+________________
+
+
+7. Creating Blocks
+Function:
+_create_block()
+Steps:
+1. Get previous block
+prev = self._get_latest_block()
+________________
+
+
+2. Calculate Merkle root
+merkle_root
+________________
+
+
+3. Build block hash
+SHA256(
+    prev_hash +
+    merkle_root +
+    timestamp
+)
+________________
+
+
+4. Store block
+Inserted into:
+blocks
+table.
+________________
+
+
+8. Transactions
+Function:
+submit_transaction()
+Every event becomes a transaction.
+Example:
+tx_type="PART_MANUFACTURED"
+________________
+
+
+Transaction hash:
+tx_hash = SHA256(
+    tx_id +
+    tx_type +
+    payload +
+    timestamp
+)
+Example:
+TX:
+Part Manufactured
+
+
+Hash:
+6f73b2a...
+Then a block is mined immediately.
+________________
+
+
+9. Querying History
+Function:
+query_asset_history()
+Returns all events for an asset.
+Example:
+ledger.query_asset_history(
+    "PART-123"
+)
+Result:
+DESIGN_REGISTERED
+PART_MANUFACTURED
+PART_CERTIFIED
+PART_SHIPPED
+This creates complete traceability.
+________________
+
+
+10. Blockchain Integrity Check
+Function:
+verify_chain_integrity()
+Checks:
+current.prev_hash
+==
+previous.block_hash
+for every block.
+If any mismatch occurs:
+Blockchain Tampered
+Result:
+{
+  "is_valid": true
+}
+or
+{
+  "is_valid": false
+}
+________________
+
+
+11. PartAuthenticator Class
+Main business logic.
+class PartAuthenticator:
+Handles:
+* Design registration
+* Part registration
+* Certification
+* Verification
+________________
+
+
+12. Part Fingerprints
+Function:
+generate_part_fingerprint()
+Creates a unique SHA-256 signature.
+Input:
+{
+    printer_id,
+    material_batch,
+    print_params,
+    design_hash
+}
+plus:
+nonce
+(random bytes)
+Then:
+SHA256(...)
+Example:
+Printer A
+Material Batch 7
+Design X
+produces:
+Fingerprint:
+ABCD1234...
+________________
+
+
+Why?
+Two parts may use:
+* same design
+* same material
+but a different:
+* printer
+* settings
+* manufacturing environment
+The fingerprint uniquely identifies a manufacturing run.
+________________
+
+
+13. Design Registration
+Function:
+register_design()
+Reads:
+turbine_blade.stl
+Computes:
+design_hash =
+SHA256(file)
+Example:
+a1b2c3d4...
+Creates:
+DES-123ABC456DEF
+Stores transaction:
+DESIGN_REGISTERED
+on the blockchain.
+________________
+
+
+14. Part Registration
+Function:
+register_part()
+Creates:
+part_id
+Example:
+PART-A9F2D8B1C3
+Generates fingerprint.
+Stores:
+Manufacturer
+Printer
+Material Batch
+Fingerprint
+Then writes transaction:
+PART_MANUFACTURED
+to the blockchain.
+________________
+
+
+15. Quality Certification
+Function:
+certify_part()
+Creates certificate:
+CERT-ABCDE12345
+Includes:
+quality_score
+standard
+qa_officer
+expiration
+Computes:
+cert_hash
+using SHA-256.
+Then records:
+PART_CERTIFIED
+on the blockchain.
+________________
+
+
+16. Counterfeit Detection
+Function:
+verify_part_authenticity()
+This is the most important feature.
+________________
+
+
+Step 1
+Find manufacturing record:
+PART_MANUFACTURED
+________________
+
+
+Step 2
+Retrieve stored fingerprint.
+stored_fingerprint
+________________
+
+
+Step 3
+Compare with scanned fingerprint.
+scan_fingerprint
+==
+stored_fingerprint
+________________
+
+
+If equal:
+Fingerprint Match
+Otherwise:
+Counterfeit Suspected
+________________
+
+
+Additional Check
+Looks for:
+PART_CERTIFIED
+transaction.
+Part must be:
+Manufactured
++
+Certified
+to be considered authentic.
+________________
+
+
+Result:
+{
+  "authentic": true,
+  "fingerprint_match": true,
+  "is_certified": true
+}
+________________
+
+
+Example Verification Flow
+Authentic:
+Part ID:
+PART-123
+
+
+Stored Fingerprint:
+ABCDEF
+
+
+Scanned Fingerprint:
+ABCDEF
+
+
+Result:
+AUTHENTIC
+________________
+
+
+Counterfeit:
+Part ID:
+PART-123
+
+
+Stored Fingerprint:
+ABCDEF
+
+
+Scanned Fingerprint:
+ZZZZZZ
+
+
+Result:
+COUNTERFEIT
+________________
+
+
+17. Hyperledger Fabric Chaincode
+The large Go string:
+FABRIC_CHAINCODE = '''
+contains production blockchain code.
+Written in:
+package main
+for Hyperledger Fabric.
+Functions:
+Function
+	Purpose
+	RegisterDesign
+	Store design
+	RegisterPart
+	Store manufactured part
+	CertifyPart
+	Add QA certification
+	VerifyPart
+	Compare fingerprints
+	GetPartHistory
+	Retrieve audit history
+	In Fabric:
+ctx.GetStub().PutState(...)
+writes to the distributed ledger.
+Unlike the SQLite demo:
+Multiple organizations
+Consensus
+Distributed validation
+Immutable ledger
+________________
+
+
+Demo Flow at the Bottom
+The if __name__ == "__main__": section demonstrates the full lifecycle.
+Step 1
+Create design:
+turbine_blade.stl
+________________
+
+
+Step 2
+Register design:
+DESIGN_REGISTERED
+________________
+
+
+Step 3
+Manufacture part:
+PART_MANUFACTURED
+________________
+
+
+Step 4
+Issue certificate:
+PART_CERTIFIED
+________________
+
+
+Step 5
+Verify authentic part:
+AUTHENTIC
+________________
+
+
+Step 6
+Test fake fingerprint:
+COUNTERFEIT
+________________
+
+
+Step 7
+Show history:
+DESIGN_REGISTERED
+PART_MANUFACTURED
+PART_CERTIFIED
+________________
+
+
+Step 8
+Verify blockchain integrity:
+Chain valid = True
+________________
+
+
+Overall Architecture
+         STL Design
+               │
+               ▼
+      SHA-256 Design Hash
+               │
+               ▼
+      Design Registration
+               │
+               ▼
+      Manufacture Part
+               │
+               ▼
+   Generate Fingerprint
+               │
+               ▼
+       Blockchain Record
+               │
+        ┌──────┴──────┐
+        ▼             ▼
+  Quality Cert     Verification
+        │             │
+        ▼             ▼
+  Certificate     Fingerprint Match
+        │             │
+        └──────┬──────┘
+               ▼
+      AUTHENTIC or COUNTERFEIT
+Strengths
+✅ Hash-chained blockchain structure
+✅ Merkle root verification
+✅ Full audit trail
+✅ Design traceability
+✅ Part traceability
+✅ Digital quality certificates
+✅ Counterfeit detection
+✅ Hyperledger Fabric migration path
+✅ SQLite-backed local development mode
+Important Limitations
+⚠️ This is not a true decentralized blockchain in local mode; it is a blockchain-style ledger stored in SQLite.
+⚠️ verify_chain_integrity() only checks hash links and does not recompute block hashes or Merkle roots.
+⚠️ A new block is created for every transaction, which is inefficient compared with batching transactions.
+⚠️ Fingerprints include a random nonce, so the same manufacturing inputs will generate different fingerprints each time.
+⚠️ No cryptographic signatures are attached to transactions.
+⚠️ No consensus mechanism exists in the SQLite implementation.
+In short, this file is a supply-chain traceability and anti-counterfeit system that uses blockchain concepts (hash chaining, Merkle trees, immutable history) to track 3D-printed parts from design creation through manufacturing, certification, and authenticity verification.
