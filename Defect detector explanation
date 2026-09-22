@@ -1,0 +1,596 @@
+
+
+1. AI Configuration & Defect Classes ⭐
+
+IMG_SIZE = (224, 224)
+BATCH_SIZE = 32
+EPOCHS = 50
+NUM_CLASSES = 5
+LEARNING_RATE = 1e-4
+
+DEFECT_CLASSES = [
+    "NORMAL",
+    "WARPING",
+    "STRINGING",
+    "LAYER_SHIFT",
+    "CLOGGING"
+]
+
+Explanation
+
+Defines the basic AI training configuration.
+
+Images are standardized to 224×224 pixels.
+
+Uses batch size of 32.
+
+Model trains for a maximum of 50 epochs.
+
+Uses 5 defect classes.
+
+Learning rate is set to 0.0001.
+
+These settings control how the CNN is trained.
+
+
+
+---
+
+2. Dataset Generation ⭐⭐⭐
+
+X, y = generate_synthetic_training_data(
+    n_samples=2000
+)
+
+label = i % NUM_CLASSES
+
+Explanation
+
+Creates 2,000 synthetic training images for demonstration.
+
+Dataset contains 5 classes:
+
+Normal
+
+Warping
+
+Stringing
+
+Layer Shift
+
+Clogging
+
+
+Each image receives a corresponding numerical label.
+
+Synthetic patterns are added to imitate different defects.
+
+In production, synthetic data would be replaced with real labelled 3D-print images.
+
+
+
+---
+
+3. Dataset Train / Validation / Test Split ⭐⭐
+
+X_train, X_temp, y_train, y_temp = train_test_split(
+    X, y,
+    test_size=0.3,
+    random_state=42
+)
+
+X_val, X_test, y_val, y_test = train_test_split(
+    X_temp, y_temp,
+    test_size=0.5,
+    random_state=42
+)
+
+Explanation
+
+Splits the dataset into:
+
+70% Training
+
+15% Validation
+
+15% Testing
+
+
+Training data teaches the CNN.
+
+Validation data monitors performance during training.
+
+Test data evaluates the final model on unseen data.
+
+random_state=42 keeps the split reproducible.
+
+
+
+---
+
+4. OpenCV Image Preprocessing ⭐⭐⭐
+
+img = cv2.resize(img, self.target_size)
+
+img = cv2.bilateralFilter(
+    img, d=9,
+    sigmaColor=75,
+    sigmaSpace=75
+)
+
+lab = cv2.cvtColor(img, cv2.COLOR_RGB2LAB)
+
+lab[:, :, 0] = self.clahe.apply(
+    lab[:, :, 0]
+)
+
+img = img.astype(np.float32) / 255.0
+
+Explanation
+
+Prepares images before they enter the CNN.
+
+Resizes every image to 224×224.
+
+Removes image noise using a bilateral filter.
+
+Uses CLAHE to improve image contrast.
+
+Normalizes pixels from 0–255 to 0–1.
+
+Gives the CNN consistent and cleaner input.
+
+
+
+---
+
+5. CNN Architecture ⭐⭐⭐⭐⭐
+
+Input: 224 × 224 × 3
+
+Conv2D(32)
+    ↓
+BatchNormalization
+    ↓
+MaxPooling
+
+Conv2D(64)
+    ↓
+BatchNormalization
+    ↓
+MaxPooling
+
+Conv2D(128)
+    ↓
+BatchNormalization
+    ↓
+MaxPooling
+
+Conv2D(256)
+    ↓
+BatchNormalization
+    ↓
+GlobalAveragePooling
+
+Dense(256)
+    ↓
+Dropout(0.5)
+
+Dense(128)
+    ↓
+Dropout(0.3)
+
+Dense(5, activation="softmax")
+
+Explanation
+
+This is the main AI model.
+
+Input is an RGB image of 224×224×3.
+
+Convolution layers progressively learn visual features.
+
+32 filters learn basic edges and textures.
+
+64 and 128 filters learn more complex layer patterns.
+
+256 filters learn higher-level defect patterns.
+
+Batch Normalization improves training stability.
+
+MaxPooling reduces the spatial size of feature maps.
+
+Global Average Pooling reduces the extracted features.
+
+Dense layers perform the final classification.
+
+Dropout helps reduce overfitting.
+
+Softmax produces probabilities for all 5 classes.
+
+
+Simple Viva Explanation
+
+> “The deeper the CNN goes, the more complex the features it learns. The early layers detect edges and textures, while the deeper layers recognize patterns associated with printing defects.”
+
+
+
+
+---
+
+6. Model Compilation & Optimizer ⭐⭐⭐
+
+self.model.compile(
+    optimizer=keras.optimizers.Adam(
+        learning_rate=LEARNING_RATE
+    ),
+    loss="sparse_categorical_crossentropy",
+    metrics=["accuracy"]
+)
+
+Explanation
+
+Uses Adam optimizer to update model weights.
+
+Learning rate is 0.0001.
+
+Uses sparse_categorical_crossentropy because we have multiple classes with integer labels.
+
+Accuracy is used to monitor classification performance.
+
+
+
+---
+
+7. CNN Training — 50 Epochs ⭐⭐⭐⭐⭐
+
+self.model.fit(
+    X_train,
+    y_train,
+    validation_data=(X_val, y_val),
+    epochs=EPOCHS,
+    batch_size=BATCH_SIZE,
+    callbacks=cbs
+)
+
+Explanation
+
+Trains the CNN using the training dataset.
+
+Maximum training duration is 50 epochs.
+
+Each batch contains 32 images.
+
+Validation data checks performance during training.
+
+The model learns by adjusting its weights after seeing training examples.
+
+
+Training Controls
+
+EarlyStopping(...)
+ModelCheckpoint(...)
+ReduceLROnPlateau(...)
+TensorBoard(...)
+
+Explanation
+
+EarlyStopping: stops training when improvement stops.
+
+ModelCheckpoint: saves the best-performing model.
+
+ReduceLROnPlateau: reduces learning rate when learning slows.
+
+TensorBoard: records training information for monitoring.
+
+
+
+---
+
+8. Defect Prediction ⭐⭐⭐⭐⭐
+
+probs = self.model.predict(img_batch)[0]
+
+pred_idx = np.argmax(probs)
+
+return {
+    "defect_class": DEFECT_CLASSES[pred_idx],
+    "confidence": float(probs[pred_idx]),
+    "is_defective":
+        DEFECT_CLASSES[pred_idx] != "NORMAL"
+}
+
+Explanation
+
+Sends a processed image into the trained CNN.
+
+CNN produces probabilities for all five classes.
+
+argmax() selects the class with the highest probability.
+
+Returns:
+
+Defect type
+
+Confidence score
+
+Whether the print is defective
+
+Probability of every class
+
+
+
+Example
+
+NORMAL       → 0.04
+WARPING      → 0.87  ← Highest
+STRINGING    → 0.05
+LAYER_SHIFT  → 0.02
+CLOGGING     → 0.02
+
+Result → WARPING, 87% confidence
+
+
+---
+
+9. YOLO Defect Localization ⭐⭐⭐⭐⭐
+
+results = self.model(
+    image_path,
+    conf=confidence_threshold
+)
+
+for box in r.boxes:
+
+    detections.append({
+        "class_name": ...,
+        "confidence": ...,
+        "bbox": ...
+    })
+
+Explanation
+
+Uses YOLO for real-time defect localization.
+
+CNN answers:
+
+
+> “What is the defect?”
+
+
+
+YOLO answers:
+
+
+> “Where is the defect?”
+
+
+
+YOLO creates bounding boxes around detected defect regions.
+
+Returns:
+
+Defect class
+
+Confidence
+
+Bounding-box coordinates
+
+Area of the detected defect
+
+
+
+
+---
+
+10. Predictive Quality Analytics ⭐⭐⭐⭐
+
+features = [
+    nozzle_temp,
+    bed_temp,
+    chamber_temp,
+    extrusion_rate,
+    fan_speed,
+    print_speed,
+    layer_height,
+    current_layer
+]
+
+Explanation
+
+Uses printer telemetry data, not just images.
+
+Monitors:
+
+Nozzle temperature
+
+Bed temperature
+
+Chamber temperature
+
+Extrusion rate
+
+Fan speed
+
+Print speed
+
+Layer information
+
+
+Converts raw printer data into ML features.
+
+This allows the system to monitor the printing process itself.
+
+
+
+---
+
+11. Isolation Forest Risk Detection ⭐⭐⭐⭐
+
+self.anomaly_model = IsolationForest(
+    contamination=0.1,
+    random_state=42
+)
+
+anomaly_score = \
+    self.anomaly_model.decision_function(
+        feature_vec
+    )
+
+risk_score = max(
+    0,
+    min(1, 0.5 - anomaly_score)
+)
+
+Explanation
+
+Isolation Forest is used for anomaly detection.
+
+Looks for unusual printer behavior.
+
+Uses recent telemetry statistics.
+
+Converts abnormal behavior into a risk score from 0–1.
+
+
+Risk Levels
+
+0.0 – 0.3  → LOW
+0.3 – 0.6  → MEDIUM
+0.6 – 0.8  → HIGH
+0.8 – 1.0  → CRITICAL
+
+LOW → Continue operation.
+
+MEDIUM → Inspect nozzle/temperature.
+
+HIGH → Pause and inspect.
+
+CRITICAL → Stop the print and investigate.
+
+
+
+---
+
+12. Quality Metrics ⭐⭐⭐
+
+edge_density = ...
+local_var = ...
+void_ratio = ...
+contrast = ...
+
+Explanation
+
+Extracts additional visual quality measurements.
+
+Edge density → indicates surface irregularities.
+
+Laplacian variance → estimates surface roughness.
+
+Void ratio → identifies possible gaps.
+
+Contrast → measures image intensity variation.
+
+These measurements are combined into an overall quality score.
+
+
+
+---
+
+13. Model Evaluation ⭐⭐⭐⭐
+
+y_pred = np.argmax(
+    self.model.predict(X_test),
+    axis=1
+)
+
+classification_report(
+    y_test,
+    y_pred,
+    target_names=DEFECT_CLASSES
+)
+
+Explanation
+
+Uses the unseen test dataset.
+
+Compares predicted classes with actual labels.
+
+Generates:
+
+Precision
+
+Recall
+
+F1-score
+
+Accuracy
+
+
+This tells us how well the CNN performs on each defect class.
+
+
+
+---
+
+14. Save Model & Metrics ⭐⭐
+
+ModelCheckpoint(
+    MODEL_PATH,
+    save_best_only=True
+)
+
+json.dump(
+    report,
+    f,
+    indent=2
+)
+
+Explanation
+
+Saves the best trained CNN model.
+
+Saves evaluation metrics as a JSON file.
+
+The trained model can later be loaded without retraining.
+
+Makes the AI model available to the backend application.
+
+
+
+---
+
+Architecture Summary ⭐⭐⭐⭐⭐
+
+3D Printer / Camera
+                       ↓
+                 Image / Telemetry
+                       ↓
+              ┌─────────────────┐
+              │ Preprocessing   │
+              │ OpenCV + CLAHE  │
+              └────────┬────────┘
+                       ↓
+              ┌─────────────────┐
+              │     CNN         │
+              │ 32→64→128→256   │
+              └────────┬────────┘
+                       ↓
+                5-Class Output
+                       ↓
+        ┌──────────────┴──────────────┐
+        ↓                             ↓
+  Defect Classification          YOLO Detection
+  "WHAT is wrong?"               "WHERE is it?"
+        ↓                             ↓
+        └──────────────┬──────────────┘
+                       ↓
+              Quality / Risk Engine
+                       ↓
+                 Isolation Forest
+                       ↓
+              LOW → CRITICAL Risk
+                       ↓
+             Operator / System Action
+
+and telemetry, preprocesses the data, uses a CNN to classify five types of defects, uses YOLO to locate those defects, and uses Isolation Forest to detect abnormal printer behavior before it becomes a visible failure.”
