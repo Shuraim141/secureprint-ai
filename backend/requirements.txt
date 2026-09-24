@@ -1,0 +1,12 @@
+# Phase 2 runtime dependencies. Ranges, not exact pins: exact versions are frozen
+# on YOUR machine after a successful install (see README "Freeze versions").
+# Later phases append numpy, opencv-python-headless, scikit-learn, joblib, defusedxml.
+fastapi>=0.115,<1.0
+uvicorn[standard]>=0.30,<1.0
+pydantic>=2.7,<3.0
+pydantic-settings>=2.3,<3.0
+SQLAlchemy>=2.0.30,<2.1
+argon2-cffi>=23.1,<26.0
+PyJWT>=2.8,<3.0
+cryptography>=42.0
+python-multipart>=0.0.9
