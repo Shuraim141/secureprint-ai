@@ -14,11 +14,12 @@ export default function ProtectedRoute({ children, permission = null }) {
   if (status !== "authenticated") {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
-  if (permission && !can(permission)) {
+  const needed = permission ? [].concat(permission) : [];
+  if (needed.length > 0 && !needed.some((name) => can(name))) {
     return (
       <div role="alert" className="m-10 rounded-xl border border-amber-500/30 bg-amber-500/10 p-6 text-amber-200">
         <h2 className="text-lg font-semibold">Access denied</h2>
-        <p className="mt-1 text-sm">Your role does not include the “{permission}” permission.</p>
+        <p className="mt-1 text-sm">Your role does not include the “{needed.join(" or ")}” permission.</p>
       </div>
     );
   }

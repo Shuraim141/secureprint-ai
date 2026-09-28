@@ -1,6 +1,6 @@
 # SecurePrint AI — AI-Driven 3D/4D Printing Security Platform (academic MVP)
 
-> Work in progress: **Phase 3 (frontend foundation)** of 10. Frontend, design security, AI quality
+> Work in progress: **Phase 6 (supply chain)** of 10. Frontend, design security, AI quality
 > control, supply chain, manufacturing security, DevSecOps and compliance follow in later phases.
 
 ## Quick start (Linux / Kali)
@@ -52,6 +52,110 @@ npm run dev         # http://localhost:5173  (Vite proxies /api and /health to p
 ```
 
 Log in with a user printed by `scripts/seed_database.py`.
+
+## Phase 4: 3D/4D design security
+
+New backend modules: `app/geometry` (STL/OBJ/3MF parsers, geometry analysis, geometric
+fingerprint, fragile watermark), `app/security/crypto.py` (AES-256-GCM envelope encryption),
+`app/services/designs.py` (registration, verification, 4D metadata), `app/api/designs.py`.
+
+Generate demo models to try the workflow by hand:
+
+```bash
+cd backend
+python -c "
+import sys; sys.path.insert(0,'.')
+from app.geometry import samples
+open('/tmp/bracket.stl','wb').write(samples.write_binary_stl(samples.make_box((80,40,12),(10,5,2))))
+tri = samples.make_box((80,40,12),(10,5,2))
+open('/tmp/bracket_tampered.stl','wb').write(samples.write_binary_stl(samples.tamper_mesh(tri, 0.5)))
+"
+```
+
+Then, with the backend and frontend both running, open **Design Security** in the sidebar:
+1. Register `/tmp/bracket.stl`. Watch the real analysis, fingerprints and encryption status appear.
+2. Verify `/tmp/bracket.stl` against it → AUTHENTIC.
+3. Verify `/tmp/bracket_tampered.stl` against it → TAMPERED, with the exact metric differences.
+4. Add a 4D profile, then verify it → INTACT. Edit `data/secureprint.db` directly (see the
+   backend test `test_4d_profile_lifecycle_and_tamper_detection` for the exact SQL) and verify
+   again → TAMPERED.
+
+Run its tests: `cd backend && python -m pytest tests/test_geometry.py tests/test_designs.py -v`
+
+## Phase 5: AI quality control
+
+Classical CV (OpenCV) + Random Forest, per the Phase 1 architecture decision — no TensorFlow
+by default (see `ml/README.md` for why, and the production substitution point).
+
+**Train the models first** (this does NOT happen automatically at startup):
+
+```bash
+python ml/training/train_defect_model.py
+python ml/training/train_process_model.py
+```
+
+Both print real dataset sizes and evaluation metrics and save `.joblib` files under `ml/models/`
+(git-ignored — you must train locally). Until both files exist, `/health` honestly reports
+`"ml": "not_configured"`, and `/api/quality/inspect` and `/predict` return 503 with a message
+telling you which script to run.
+
+Then, with both servers running, open **Quality Control** in the sidebar (as `inspector1` or
+`admin`):
+1. Upload any image (a synthetic sample from `ml/training`'s dataset generator works, or any
+   photo) → see the predicted class, confidence, per-class probabilities, and the actual
+   preprocessed/edge/contour images computed by OpenCV.
+2. Try **Predictive quality analytics** → click "Load NORMAL" then "Load SUSPICIOUS" (the exact
+   values from this project's specification) → compare predicted quality, risk level and
+   anomaly score.
+3. Inspection history shows past results from the database.
+
+Generate a few known-class sample images to test with:
+```bash
+cd backend
+python -c "
+import sys; sys.path.insert(0,'.')
+from app.ml.quality_dataset import generate_image
+for label in ['NORMAL','WARPING','STRINGING','LAYER_SHIFT','CLOGGING']:
+    open(f'/tmp/{label}.png','wb').write(generate_image(label, seed=1))
+"
+```
+
+Run its tests: `cd backend && python -m pytest tests/test_quality_ml.py tests/test_quality.py -v`
+
+**Honesty note:** the synthetic demo dataset has strong, clean, procedurally-generated visual
+signatures per class, so the defect classifier scores very high on it. That reflects the
+dataset, not real-photo performance — every metrics display carries the required disclaimer:
+"Metrics are based on the supplied demonstration/synthetic dataset and do not represent
+industrial validation." See `ml/README.md` for the full explanation and how to point training
+at real labelled photos instead.
+
+## Phase 6: supply chain and part authentication
+
+**Provenance ledger (MVP):** a local, Ed25519-signed, hash-chained event log
+(`backend/app/blockchain/ledger.py`). This is *not* Hyperledger Fabric: Fabric needs peers, an
+orderer, a CA and chaincode, which is impractical on a student laptop. The ledger implements a
+`LedgerBackend` interface so a Fabric adapter can replace it later without touching the service
+layer or API. Fabric is the documented production target, not something deployed here.
+
+Each part follows a fixed, enforced workflow:
+`DESIGN_CREATED -> DESIGN_APPROVED -> SLICED -> PRINT_STARTED -> QUALITY_INSPECTED ->
+QUALITY_APPROVED -> CERTIFIED -> SHIPPED -> RECEIVED`. Each event stores its hash, the previous
+event's hash and an Ed25519 signature. The signing key is derived from `MASTER_KEY`, so no
+keypair file is stored.
+
+Try it (log in as `engineer1` or `supplychain1`, open **Supply Chain**):
+1. Create a part from a registered design.
+2. Click **Advance** until RECEIVED, then **Verify chain** -> intact.
+3. Authenticate the part code -> AUTHENTIC.
+4. Tamper with an earlier event directly in the database:
+   `sqlite3 data/secureprint.db "UPDATE supply_chain_events SET actor='attacker' WHERE sequence=2 AND chain_id='PART-000001';"`
+5. **Verify chain** / **Authenticate** again -> INTEGRITY FAILURE / TAMPERED at event #2.
+   Restore with `SET actor='engineer1'` (use the original actor name).
+
+Known limit: deleting the *last* events of a chain cannot be detected from the chain alone.
+Production: anchor each chain head externally (WORM storage or Fabric).
+
+Tests: `cd backend && python -m pytest tests/test_supply_chain_ledger.py tests/test_supply_chain.py -v`
 
 ## Try the API from Swagger
 

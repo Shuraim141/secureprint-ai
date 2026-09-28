@@ -1,0 +1,5 @@
+// Mirrors backend/app/blockchain/workflow.py's WORKFLOW_STEPS exactly.
+export const WORKFLOW_STEPS = [
+  "DESIGN_CREATED", "DESIGN_APPROVED", "SLICED", "PRINT_STARTED", "QUALITY_INSPECTED",
+  "QUALITY_APPROVED", "CERTIFIED", "SHIPPED", "RECEIVED",
+];

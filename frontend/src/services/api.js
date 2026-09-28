@@ -61,7 +61,12 @@ export function describeError(data, status) {
   return `Request failed (HTTP ${status}).`;
 }
 
-async function request(path, { method = "GET", body, auth = true, signal } = {}) {
+function filenameFrom(header) {
+  const match = /filename="?([^";]+)"?/i.exec(header || "");
+  return match ? match[1] : "download.bin";
+}
+
+async function request(path, { method = "GET", body, auth = true, signal, as = "json" } = {}) {
   const headers = { Accept: "application/json" };
   const isForm = typeof FormData !== "undefined" && body instanceof FormData;
   if (body !== undefined && !isForm) headers["Content-Type"] = "application/json";
@@ -81,6 +86,9 @@ async function request(path, { method = "GET", body, auth = true, signal } = {})
     throw new ApiError(0, "Cannot reach the SecurePrint API. Is the backend running on port 8000?");
   }
 
+  if (response.ok && as === "blob") {
+    return { blob: await response.blob(), filename: filenameFrom(response.headers.get("Content-Disposition")) };
+  }
   if (response.status === 204) return null;
   let data = null;
   const text = await response.text();
@@ -117,4 +125,56 @@ export const api = {
   dashboardSummary: (signal) => request("/api/dashboard/summary", { signal }),
   auditLogs: (params, signal) => request(withQuery("/api/audit/logs", params), { signal }),
   verifyAuditChain: (signal) => request("/api/audit/verify", { signal }),
+
+  // --- 3D/4D design security (multipart uploads: the browser sets the boundary header)
+  listDesigns: (signal) => request("/api/designs", { signal }),
+  getDesign: (id, signal) => request(`/api/designs/${id}`, { signal }),
+  registerDesign: (file, name) => {
+    const form = new FormData();
+    form.append("file", file);
+    if (name) form.append("name", name);
+    return request("/api/designs", { method: "POST", body: form });
+  },
+  addDesignVersion: (id, file) => {
+    const form = new FormData();
+    form.append("file", file);
+    return request(`/api/designs/${id}/versions`, { method: "POST", body: form });
+  },
+  verifyDesign: (file, designId) => {
+    const form = new FormData();
+    form.append("file", file);
+    if (designId !== undefined && designId !== null) form.append("design_id", String(designId));
+    return request("/api/designs/verify", { method: "POST", body: form });
+  },
+  downloadVersion: (id, version) =>
+    request(`/api/designs/${id}/versions/${version}/download`, { as: "blob" }),
+  downloadWatermarked: (id, version) =>
+    request(`/api/designs/${id}/versions/${version}/watermarked`, { as: "blob" }),
+  save4dProfile: (id, body) => request(`/api/designs/${id}/4d`, { method: "PUT", body }),
+  verify4dProfile: (id) => request(`/api/designs/${id}/4d/verify`, { method: "POST" }),
+
+  // --- AI quality control
+  inspectImage: (file, { partId, printJobId } = {}) => {
+    const form = new FormData();
+    form.append("file", file);
+    const params = new URLSearchParams();
+    if (partId) params.set("part_id", partId);
+    if (printJobId) params.set("print_job_id", printJobId);
+    const query = params.toString();
+    return request(`/api/quality/inspect${query ? `?${query}` : ""}`, { method: "POST", body: form });
+  },
+  qualityHistory: (params, signal) => request(withQuery("/api/quality/history", params), { signal }),
+  predictProcessQuality: (body) => request("/api/quality/predict", { method: "POST", body }),
+  qualityModelMetrics: (modelName, signal) =>
+    request(`/api/quality/models/${modelName}`, { signal }),
+
+  // --- supply chain provenance and part authentication
+  createPart: (body) => request("/api/supply-chain/parts", { method: "POST", body }),
+  listParts: (signal) => request("/api/supply-chain/parts", { signal }),
+  getPart: (id, signal) => request(`/api/supply-chain/parts/${id}`, { signal }),
+  addProvenanceEvent: (id, body) =>
+    request(`/api/supply-chain/parts/${id}/events`, { method: "POST", body }),
+  verifyPartChain: (id) => request(`/api/supply-chain/parts/${id}/verify`, { method: "GET" }),
+  authenticatePart: (partCode) =>
+    request(`/api/supply-chain/authenticate/${encodeURIComponent(partCode)}`, { method: "GET" }),
 };

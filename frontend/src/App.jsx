@@ -4,6 +4,9 @@ import Layout from "./components/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider } from "./hooks/useAuth";
 import DashboardPage from "./pages/DashboardPage";
+import DesignsPage from "./pages/DesignsPage";
+import QualityPage from "./pages/QualityPage";
+import SupplyChainPage from "./pages/SupplyChainPage";
 import LoginPage from "./pages/LoginPage";
 import NotFoundPage from "./pages/NotFoundPage";
 
@@ -21,6 +24,30 @@ export default function App() {
             }
           >
             <Route index element={<DashboardPage />} />
+            <Route
+              path="designs"
+              element={
+                <ProtectedRoute permission={["design:view", "design:verify"]}>
+                  <DesignsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="quality"
+              element={
+                <ProtectedRoute permission={["quality:inspect", "quality:view"]}>
+                  <QualityPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="supply-chain"
+              element={
+                <ProtectedRoute permission={["provenance:verify", "part:authenticate"]}>
+                  <SupplyChainPage />
+                </ProtectedRoute>
+              }
+            />
           </Route>
           <Route path="*" element={<NotFoundPage />} />
         </Routes>

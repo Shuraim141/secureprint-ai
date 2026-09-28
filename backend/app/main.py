@@ -14,7 +14,10 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.api import audit as audit_api
 from app.api import auth as auth_api
 from app.api import dashboard as dashboard_api
+from app.api import designs as designs_api
 from app.api import health as health_api
+from app.api import quality as quality_api
+from app.api import supply_chain as supply_chain_api
 from app.audit.logger import write_audit
 from app.config import get_settings
 from app.database import SessionLocal, init_db
@@ -68,7 +71,16 @@ async def request_context(request: Request, call_next):
     """Request id, timing log (path only, never query strings/bodies) and security headers."""
     request_id = uuid.uuid4().hex[:12]
     started = time.perf_counter()
-    response = await call_next(request)
+    too_large = False
+    if request.method in {"POST", "PUT", "PATCH"} and request.url.path.startswith("/api/designs"):
+        # Early refusal from the declared size, before the body is buffered to disk.
+        # (Chunked uploads without Content-Length are still capped while being read.)
+        length = request.headers.get("content-length", "")
+        too_large = length.isdigit() and int(length) > settings.max_upload_bytes + 1_048_576
+    if too_large:
+        response = JSONResponse(status_code=413, content={"detail": "Request body too large"})
+    else:
+        response = await call_next(request)
     duration_ms = round((time.perf_counter() - started) * 1000, 1)
     response.headers["X-Request-ID"] = request_id
     response.headers["X-Content-Type-Options"] = "nosniff"
@@ -107,3 +119,6 @@ app.include_router(health_api.router)
 app.include_router(auth_api.router)
 app.include_router(audit_api.router)
 app.include_router(dashboard_api.router)
+app.include_router(designs_api.router)
+app.include_router(quality_api.router)
+app.include_router(supply_chain_api.router)

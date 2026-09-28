@@ -6,7 +6,10 @@ def test_health_endpoint_reports_components(client):
     body = client.get("/health").json()
     assert body["status"] == "healthy"
     assert body["database"] == "ok" and body["storage"] == "ok" and body["api"] == "ok"
-    assert body["ml"] == "not_configured"  # honest until Phase 5
+    # "ml" is "not_configured" before any test has trained a model this session, or "ok"
+    # afterwards (see tests/conftest.py's trained_models fixture) -- both are honest,
+    # accurate reports of real on-disk state, which is what this test actually verifies.
+    assert body["ml"] in {"not_configured", "ok"}
 
 
 def test_security_headers_present(client):

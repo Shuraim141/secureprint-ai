@@ -78,6 +78,7 @@ class Design4DProfile(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     design_id: Mapped[int] = mapped_column(ForeignKey("designs.id"), unique=True)
+    design_version: Mapped[int] = mapped_column(Integer, default=1)  # version the fingerprint is bound to
     material_id: Mapped[str] = mapped_column(String(64))
     material_name: Mapped[str] = mapped_column(String(128))
     material_class: Mapped[str] = mapped_column(String(64))  # e.g. shape-memory polymer

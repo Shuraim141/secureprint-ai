@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     database_url: str = f"sqlite:///{REPO_ROOT / 'data' / 'secureprint.db'}"
     # Production: object storage (S3) behind a StorageBackend adapter (Phase 4).
     storage_dir: Path = REPO_ROOT / "data" / "storage"
+    model_dir: Path = REPO_ROOT / "ml" / "models"  # trained .joblib artifacts (see ml/README.md)
     max_upload_mb: int = Field(default=50, ge=1, le=500)
 
     jwt_secret: str = Field(min_length=32)

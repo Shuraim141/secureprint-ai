@@ -28,8 +28,8 @@ def _check_storage() -> str:
 
 
 def _check_ml() -> str:
-    # Phase 5 replaces this with a real model-load check. Reported honestly until then.
-    return "not_configured"
+    from app.ml.registry import ml_health
+    return ml_health()
 
 
 def check_health() -> dict:

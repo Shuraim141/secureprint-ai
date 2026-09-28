@@ -18,11 +18,67 @@ os.environ.update({
     "ACCESS_TOKEN_MINUTES": "30",
     "CORS_ORIGINS": "http://localhost:5173",
     "HARDWARE_PROFILE": "low",
+    "MAX_UPLOAD_MB": "1",
 })
+
+_MODEL_DIR = _TMP / "models"
+os.environ["MODEL_DIR"] = str(_MODEL_DIR)
 
 import pytest  # noqa: E402
 
 PASSWORD = "Str0ng-Passw0rd!"
+
+
+def _train_tiny_models() -> None:
+    """Real training (not mocked), just small and fast, so /api/quality tests exercise the
+    actual predict path end to end."""
+    import numpy as np
+    from sklearn.ensemble import IsolationForest, RandomForestClassifier
+
+    from app.cv.inspection import decode_image
+    from app.ml.process_dataset import FEATURE_NAMES as PROCESS_FEATURES
+    from app.ml.process_dataset import generate_process_dataset, to_feature_vector
+    from app.ml.quality_dataset import CLASSES, generate_dataset
+    from app.ml.quality_features import FEATURE_NAMES as IMAGE_FEATURES
+    from app.ml.quality_features import extract_features
+    from app.ml.quality_model import (
+        DEFECT_MODEL_FILENAME,
+        PROCESS_MODEL_FILENAME,
+        DefectDetector,
+        ProcessQualityModel,
+    )
+
+    X, y = [], []
+    for label, png in generate_dataset(samples_per_class=15, seed=1, size=64):
+        X.append(extract_features(decode_image(png), 48))
+        y.append(label)
+    clf = RandomForestClassifier(n_estimators=30, random_state=1, n_jobs=-1)
+    clf.fit(np.array(X), np.array(y))
+    DefectDetector(clf, IMAGE_FEATURES, CLASSES, "test", "test-defect-v1").save(
+        _MODEL_DIR / DEFECT_MODEL_FILENAME)
+
+    pX, py = [], []
+    for values, label, _ in generate_process_dataset(n_normal=120, n_extreme=40, seed=7):
+        pX.append(to_feature_vector(values))
+        py.append(label)
+    pX = np.array(pX)
+    qclf = RandomForestClassifier(n_estimators=30, random_state=7, n_jobs=-1)
+    qclf.fit(pX, np.array(py))
+    iso = IsolationForest(n_estimators=30, contamination=0.15, random_state=7, n_jobs=-1)
+    iso.fit(pX)
+    ProcessQualityModel(qclf, iso, PROCESS_FEATURES, "test", "test-process-v1").save(
+        _MODEL_DIR / PROCESS_MODEL_FILENAME)
+
+
+@pytest.fixture(scope="session")
+def trained_models(client):
+    """Trains tiny real models once per test session, then clears the app's model cache."""
+    from app.ml.registry import clear_model_cache
+
+    _train_tiny_models()
+    clear_model_cache()
+    yield
+
 
 
 @pytest.fixture(scope="session")
