@@ -32,7 +32,10 @@ describe("QualityPage", () => {
     const file = new File(["x"], "print.png", { type: "image/png" });
     const input = document.querySelector('input[type="file"]');
     fireEvent.change(input, { target: { files: [file] } });
-    fireEvent.click(screen.getByRole("button", { name: /inspect image/i }));
+    // Submit the form directly instead of clicking the button: the file input is `required`, and
+    // jsdom's own validity check cannot see a faked File, so it would silently block the submit
+    // event. A real browser has a real file, so this only affects the test environment.
+    fireEvent.submit(input.closest("form"));
     const result = await screen.findByTestId("inspect-result");
     expect(result).toHaveTextContent("DEFECT DETECTED");
     expect(result).toHaveTextContent("LAYER_SHIFT");
