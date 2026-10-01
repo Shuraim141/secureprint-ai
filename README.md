@@ -1,6 +1,6 @@
 # SecurePrint AI — AI-Driven 3D/4D Printing Security Platform (academic MVP)
 
-> Work in progress: **Phase 6 (supply chain)** of 10. Frontend, design security, AI quality
+> Work in progress: **Phase 8 (DevSecOps)** of 10. Frontend, design security, AI quality
 > control, supply chain, manufacturing security, DevSecOps and compliance follow in later phases.
 
 ## Quick start (Linux / Kali)
@@ -156,6 +156,55 @@ Known limit: deleting the *last* events of a chain cannot be detected from the c
 Production: anchor each chain head externally (WORM storage or Fabric).
 
 Tests: `cd backend && python -m pytest tests/test_supply_chain_ledger.py tests/test_supply_chain.py -v`
+
+## Phase 7: manufacturing security
+
+**Printer simulator (Module F):** we simulate telemetry in-process because OctoPrint/Klipper
+need a physical printer or controller board, neither available to a student. The simulator
+implements the same start/pause/stop shape a future OctoPrint/Klipper adapter would, so the
+rest of the app would not change. Four scenarios: `NORMAL`, `OVERHEAT`, `SPEED_SPIKE`,
+`PARAMETER_TAMPERING`.
+
+**Hybrid anomaly detection (Module G):** hard safety thresholds first (same ranges as
+Module A3 and the G-code analyzer), then the trained Isolation Forest for subtler statistical
+anomalies if every threshold passes.
+
+**G-code analysis (Module H):** a real line-by-line parser (`backend/app/manufacturing/gcode.py`),
+not a filename check. Four sample files under `manufacturing/gcode/`: `safe.gcode`,
+`malicious_temperature.gcode`, `malicious_speed.gcode`, `suspicious_command.gcode`.
+
+**Automated incident response (Module I):** Telemetry -> Detection -> Security Event ->
+Incident -> Simulated Printer Pause -> Audit Log, with a real database record at every step.
+
+**MES (Module K):** `MESAdapter` interface + `LocalMESSimulator`, because no real industrial
+MES is available. Documented production migration: `RealMESAdapter` against the site's actual
+MES, with no change to `services/manufacturing.py`.
+
+Try it (log in as `engineer1`, open **Manufacturing Security**):
+1. Start `PRINTER-01` on `NORMAL` -> watch live telemetry, completes with no incident.
+2. Start it on `OVERHEAT` -> within a few seconds, the printer pauses itself, an incident
+   appears below, and a HIGH-severity security event is in the audit log.
+3. Upload `manufacturing/gcode/malicious_temperature.gcode` -> SECURITY WARNING, with the exact
+   line and the excessive-temperature finding.
+
+Run its tests: `cd backend && python -m pytest tests/test_gcode.py tests/test_manufacturing_simulator.py tests/test_manufacturing.py -v`
+
+## Phase 8: DevSecOps
+
+GitHub Actions (`.github/workflows/ci.yml`) runs the exact same commands used by hand
+throughout development, on every push/PR to `main`:
+
+- **Backend job:** `ruff check .`, `bandit -q -r app`, `pip-audit -r requirements.txt`,
+  `python -m pytest -v`
+- **Frontend job:** `npm ci`, `npm test`, `npm run build`, `npm audit`
+
+No .env file is needed in CI: `tests/conftest.py` sets `JWT_SECRET`/`MASTER_KEY`/`DATABASE_URL`
+directly in the environment before the app is imported, exactly as it does for local test runs.
+Nothing in this workflow is decorative — a failing step fails the whole run, the same as
+running the command locally.
+
+To see it run: push this repository to GitHub (or open a pull request) and check the
+**Actions** tab. It can also be triggered manually from there (`workflow_dispatch`).
 
 ## Try the API from Swagger
 

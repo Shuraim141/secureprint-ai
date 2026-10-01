@@ -16,7 +16,7 @@ from sqlalchemy.engine import make_url  # noqa: E402
 
 from app.config import get_settings  # noqa: E402
 from app.database import SessionLocal, engine, init_db  # noqa: E402
-from app.services.seed import seed_demo_users, seed_roles  # noqa: E402
+from app.services.seed import seed_demo_users, seed_printers, seed_roles  # noqa: E402
 
 
 def reset_sqlite(url: str) -> None:
@@ -43,6 +43,7 @@ def main() -> int:
     init_db()
     with SessionLocal() as db:
         seed_roles(db)
+        seed_printers(db)
         results = seed_demo_users(db, fixed)
     print(f"{'USERNAME':<14}{'ROLE':<20}PASSWORD")
     for row in results:

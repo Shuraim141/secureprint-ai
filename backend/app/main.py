@@ -16,6 +16,7 @@ from app.api import auth as auth_api
 from app.api import dashboard as dashboard_api
 from app.api import designs as designs_api
 from app.api import health as health_api
+from app.api import manufacturing as manufacturing_api
 from app.api import quality as quality_api
 from app.api import supply_chain as supply_chain_api
 from app.audit.logger import write_audit
@@ -24,7 +25,7 @@ from app.database import SessionLocal, init_db
 from app.hardware import get_hardware_profile
 from app.logging_config import setup_logging
 from app.models.user import RevokedToken
-from app.services.seed import seed_roles
+from app.services.seed import seed_printers, seed_roles
 from app.timeutil import utcnow
 
 settings = get_settings()
@@ -39,6 +40,7 @@ async def lifespan(_app: FastAPI):
     profile = get_hardware_profile(settings.hardware_profile)
     with SessionLocal() as db:
         seed_roles(db)
+        seed_printers(db)
         db.execute(delete(RevokedToken).where(RevokedToken.expires_at < utcnow()))
         db.commit()
         write_audit(db, action="SYSTEM_STARTUP", user="system", resource="api",
@@ -122,3 +124,4 @@ app.include_router(dashboard_api.router)
 app.include_router(designs_api.router)
 app.include_router(quality_api.router)
 app.include_router(supply_chain_api.router)
+app.include_router(manufacturing_api.router)

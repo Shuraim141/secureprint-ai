@@ -8,9 +8,7 @@ const NAV = [
   { label: "Design Security", to: "/designs", anyOf: ["design:view", "design:verify"] },
   { label: "Quality Control", to: "/quality", anyOf: ["quality:inspect", "quality:view"] },
   { label: "Supply Chain", to: "/supply-chain", anyOf: ["provenance:verify", "part:authenticate"] },
-  { label: "Manufacturing", phase: 7 },
-  { label: "G-code Security", phase: 7 },
-  { label: "Incidents", phase: 7 },
+  { label: "Manufacturing", to: "/manufacturing", anyOf: ["printer:control", "gcode:analyze", "incident:view"] },
   { label: "Compliance", phase: 9 },
   { label: "Audit Logs", phase: 9 },
 ];

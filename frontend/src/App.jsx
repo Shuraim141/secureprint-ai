@@ -6,6 +6,7 @@ import { AuthProvider } from "./hooks/useAuth";
 import DashboardPage from "./pages/DashboardPage";
 import DesignsPage from "./pages/DesignsPage";
 import QualityPage from "./pages/QualityPage";
+import ManufacturingPage from "./pages/ManufacturingPage";
 import SupplyChainPage from "./pages/SupplyChainPage";
 import LoginPage from "./pages/LoginPage";
 import NotFoundPage from "./pages/NotFoundPage";
@@ -45,6 +46,14 @@ export default function App() {
               element={
                 <ProtectedRoute permission={["provenance:verify", "part:authenticate"]}>
                   <SupplyChainPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="manufacturing"
+              element={
+                <ProtectedRoute permission={["printer:control", "gcode:analyze", "incident:view"]}>
+                  <ManufacturingPage />
                 </ProtectedRoute>
               }
             />

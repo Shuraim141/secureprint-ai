@@ -17,7 +17,10 @@ os.environ.update({
     "LOCKOUT_MINUTES": "15",
     "ACCESS_TOKEN_MINUTES": "30",
     "CORS_ORIGINS": "http://localhost:5173",
-    "HARDWARE_PROFILE": "low",
+    # "high": fast simulator ticks (0.5s) so manufacturing tests do not wait several
+    # seconds per tick. The trained_models fixture hardcodes its own small sizes below,
+    # so this does not make the ML training fixture slower.
+    "HARDWARE_PROFILE": "high",
     "MAX_UPLOAD_MB": "1",
 })
 

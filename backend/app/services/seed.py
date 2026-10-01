@@ -5,9 +5,15 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.audit.logger import write_audit
+from app.models.manufacturing import Printer
 from app.models.user import Role, User
 from app.security.passwords import hash_password
 from app.security.rbac import ROLE_DESCRIPTIONS, RoleName
+
+DEMO_PRINTERS = [
+    ("PRINTER-01", "Prusa-style FDM Printer 1"),
+    ("PRINTER-02", "Prusa-style FDM Printer 2"),
+]
 
 DEMO_USERS = [
     ("admin", "ADMIN", "Demo Administrator"),
@@ -34,7 +40,7 @@ def seed_demo_users(db: Session, fixed_password: str | None = None) -> list[dict
     results = []
     for username, role_name, full_name in DEMO_USERS:
         if db.execute(select(User).where(User.username == username)).scalar_one_or_none():
-            results.append({"username": username, "role": role_name, "password": None,  # nosec B105
+            results.append({"username": username, "role": role_name, "password": None,
                             "created": False})
             continue
         role = db.execute(select(Role).where(Role.name == role_name)).scalar_one()
@@ -47,3 +53,13 @@ def seed_demo_users(db: Session, fixed_password: str | None = None) -> list[dict
         results.append({"username": username, "role": role_name, "password": password,
                         "created": True})
     return results
+
+
+def seed_printers(db: Session) -> None:
+    """Idempotent: creates the demo printers referenced throughout Module F/G/H/I/K if they
+    do not already exist. No physical printer is required -- see app/manufacturing/simulator.py."""
+    existing = set(db.execute(select(Printer.printer_code)).scalars())
+    for code, name in DEMO_PRINTERS:
+        if code not in existing:
+            db.add(Printer(printer_code=code, name=name, adapter="simulator", state="idle"))
+    db.commit()

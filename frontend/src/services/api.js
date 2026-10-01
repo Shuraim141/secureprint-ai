@@ -177,4 +177,24 @@ export const api = {
   verifyPartChain: (id) => request(`/api/supply-chain/parts/${id}/verify`, { method: "GET" }),
   authenticatePart: (partCode) =>
     request(`/api/supply-chain/authenticate/${encodeURIComponent(partCode)}`, { method: "GET" }),
+
+  // --- manufacturing security: printer simulator, G-code analysis, incidents
+  listPrinters: (signal) => request("/api/manufacturing/printers", { signal }),
+  startPrint: (printerId, scenario, seed) =>
+    request(`/api/manufacturing/printers/${printerId}/start`, {
+      method: "POST", body: { scenario, seed },
+    }),
+  pausePrint: (printerId) =>
+    request(`/api/manufacturing/printers/${printerId}/pause`, { method: "POST" }),
+  stopPrint: (printerId) =>
+    request(`/api/manufacturing/printers/${printerId}/stop`, { method: "POST" }),
+  getTelemetry: (printerId, limit, signal) =>
+    request(withQuery(`/api/manufacturing/printers/${printerId}/telemetry`, { limit }), { signal }),
+  analyzeGcode: (file) => {
+    const form = new FormData();
+    form.append("file", file);
+    return request("/api/manufacturing/analyze-gcode", { method: "POST", body: form });
+  },
+  listIncidents: (params, signal) =>
+    request(withQuery("/api/manufacturing/incidents", params), { signal }),
 };

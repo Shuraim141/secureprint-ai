@@ -44,9 +44,9 @@ export default function DashboardPage() {
   const s = summary.data;
   const cards = [
     ["Designs registered", s?.designs, "live"],
-    ["Active prints", s?.active_prints, "Phase 7"],
+    ["Active prints", s?.active_prints, "live"],
     ["Defects detected", s?.defects_detected, "live"],
-    ["Security incidents", s ? `${s.incidents_open} open / ${s.incidents_total}` : null, "Phase 7"],
+    ["Security incidents", s ? `${s.incidents_open} open / ${s.incidents_total}` : null, "live"],
     ["Parts registered", s?.parts, "live"],
     ["Supply-chain events", s?.supply_chain_events, "live"],
     ["Audit events", s?.audit_events, "live"],
