@@ -30,7 +30,10 @@ class RunningJob:
     scenario: str
     tick: int = 0
     state: str = "RUNNING"  # RUNNING | PAUSED | COMPLETED | STOPPED
-    rng: random.Random = field(default_factory=lambda: random.Random())
+    # Deterministic synthetic telemetry generation, not a security context; secrets
+    # does not support seeding, which reproducibility here requires (see Phase 5's same
+    # pattern in app/ml/quality_dataset.py and app/ml/process_dataset.py).
+    rng: random.Random = field(default_factory=lambda: random.Random())  # noqa: S311  # nosec B311
     params: JobParams = field(default_factory=JobParams)
     telemetry: deque = field(default_factory=lambda: deque(maxlen=TELEMETRY_BUFFER_SIZE))
     latest_anomaly: AnomalyResult | None = None
@@ -61,7 +64,7 @@ class PrinterSimulatorRegistry:
         if self.is_running(printer_id):
             raise RuntimeError(f"Printer {printer_id} already has a running job")
         job = RunningJob(print_job_id=print_job_id, printer_id=printer_id, scenario=scenario,
-                         rng=random.Random(seed), process_model=process_model)
+                         rng=random.Random(seed), process_model=process_model)  # noqa: S311  # nosec B311
         job.task = asyncio.create_task(self._run(job, tick_seconds, on_tick))
         self._jobs[printer_id] = job
         return job

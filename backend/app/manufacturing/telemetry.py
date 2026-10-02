@@ -16,7 +16,11 @@ from dataclasses import dataclass
 from app.ml.process_dataset import SAFE_RANGES
 
 SCENARIOS = ("NORMAL", "OVERHEAT", "SPEED_SPIKE", "PARAMETER_TAMPERING")
-DEFAULT_TOTAL_LAYERS = 40
+# Kept short deliberately: at 15 ticks total, a demo print finishes in 7.5s (high profile) to
+# 30s (low profile) -- the specification requires the app stay usable in a live oral exam and
+# not make anyone "wait one hour for a demonstration." The original 40-layer/3-tick default
+# (120 ticks) took up to 4 minutes on a low-end machine just to show one successful completion.
+DEFAULT_TOTAL_LAYERS = 15
 SPEED_SPIKE_AT_TICK = 8
 
 
@@ -28,7 +32,7 @@ def _centre(name: str) -> float:
 @dataclass(frozen=True)
 class JobParams:
     total_layers: int = DEFAULT_TOTAL_LAYERS
-    ticks_per_layer: int = 3  # how many telemetry samples advance one printed layer
+    ticks_per_layer: int = 1  # how many telemetry samples advance one printed layer
 
 
 def generate_sample(scenario: str, tick: int, params: JobParams, rng: random.Random) -> dict:

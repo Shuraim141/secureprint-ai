@@ -40,7 +40,7 @@ def seed_demo_users(db: Session, fixed_password: str | None = None) -> list[dict
     results = []
     for username, role_name, full_name in DEMO_USERS:
         if db.execute(select(User).where(User.username == username)).scalar_one_or_none():
-            results.append({"username": username, "role": role_name, "password": None,
+            results.append({"username": username, "role": role_name, "password": None,  # nosec B105
                             "created": False})
             continue
         role = db.execute(select(Role).where(Role.name == role_name)).scalar_one()

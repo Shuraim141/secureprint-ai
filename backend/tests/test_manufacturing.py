@@ -38,12 +38,16 @@ def stop_all(client, headers):
 # ---------------- access control ----------------
 def test_manufacturing_endpoints_require_permission(client, headers_for, trained_models):
     printer_id = get_printer_id(client, headers_for("ADMIN"))
-    for role in ("VIEWER", "AUDITOR"):
+    for role in ("VIEWER", "AUDITOR", "SUPPLY_CHAIN"):  # none of these have printer:control
         assert client.post(f"/api/manufacturing/printers/{printer_id}/start",
                            headers=headers_for(role), json={"scenario": "NORMAL"}).status_code == 403
     assert client.get("/api/manufacturing/printers", headers=headers_for("VIEWER")).status_code == 200
-    assert client.get("/api/manufacturing/incidents", headers=headers_for("VIEWER")).status_code == 403
+    # incident:view: ENGINEER, QUALITY_INSPECTOR, AUDITOR and VIEWER all have it by design
+    # (see rbac.py); SUPPLY_CHAIN is the one role that does not.
+    assert client.get("/api/manufacturing/incidents", headers=headers_for("VIEWER")).status_code == 200
     assert client.get("/api/manufacturing/incidents", headers=headers_for("AUDITOR")).status_code == 200
+    assert client.get("/api/manufacturing/incidents",
+                      headers=headers_for("SUPPLY_CHAIN")).status_code == 403
 
 
 # ---------------- printer simulator lifecycle ----------------
@@ -66,7 +70,9 @@ def test_start_normal_print_runs_to_completion_with_no_incident(client, headers_
                           headers=engineer).json()
         return body if body["simulator_state"] in {"COMPLETED", "IDLE"} else None
 
-    final = wait_until(completed, timeout_s=15.0)
+    # 15 ticks x 0.5s (the "high" profile tick rate conftest.py selects for tests) = 7.5s
+    # minimum; 20s leaves comfortable margin for test overhead.
+    final = wait_until(completed, timeout_s=20.0)
     assert not any(s["anomaly"] for s in final["samples"])
     stop_all(client, engineer)
 
