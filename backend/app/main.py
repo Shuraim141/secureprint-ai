@@ -13,6 +13,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.api import audit as audit_api
 from app.api import auth as auth_api
+from app.api import compliance as compliance_api
 from app.api import dashboard as dashboard_api
 from app.api import designs as designs_api
 from app.api import health as health_api
@@ -120,6 +121,7 @@ async def unhandled_error_handler(request: Request, exc: Exception):
 app.include_router(health_api.router)
 app.include_router(auth_api.router)
 app.include_router(audit_api.router)
+app.include_router(compliance_api.router)
 app.include_router(dashboard_api.router)
 app.include_router(designs_api.router)
 app.include_router(quality_api.router)

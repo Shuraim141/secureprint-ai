@@ -1,9 +1,19 @@
 # SecurePrint AI — AI-Driven 3D/4D Printing Security Platform (academic MVP)
 
-> Work in progress: **Phase 8 (DevSecOps)** of 10. Frontend, design security, AI quality
-> control, supply chain, manufacturing security, DevSecOps and compliance follow in later phases.
+> **All 10 phases complete.** Docs: [architecture](docs/ARCHITECTURE.md) ·
+> [threat model](docs/THREAT_MODEL.md) · [demo guide](docs/DEMO_GUIDE.md).
 
-## Quick start (Linux / Kali)
+## Fastest start (Linux / Kali / macOS)
+
+```bash
+bash scripts/setup.sh        # venv + deps + .env + database + demo users + demo ML models
+bash scripts/check_all.sh    # runs exactly what CI runs
+```
+
+Always `source .venv/bin/activate` first when running `pytest`/`uvicorn` by hand; otherwise Python
+will not find the project's packages (`No module named 'pydantic_settings'`).
+
+## Quick start, manual steps (Linux / Kali)
 
 ```bash
 cd secureprint-ai
@@ -205,6 +215,28 @@ running the command locally.
 
 To see it run: push this repository to GitHub (or open a pull request) and check the
 **Actions** tab. It can also be triggered manually from there (`workflow_dispatch`).
+
+## Phase 9: compliance evidence and audit log UI
+
+`GET /api/compliance/controls` returns the last stored results; `POST /api/compliance/run`
+re-evaluates every control against the live system and stores the evidence (both need the
+`compliance:view` permission: ADMIN and AUDITOR). Controls are mapped to NIST CSF references
+and ISO 9001 clauses (see `app/services/compliance.py`). Each check inspects real state (Argon2
+hashes, RBAC table, lockout settings, encryption key, encrypted design versions, audit hash chain,
+provenance chains, trained models). Nothing is hardcoded PASS: no data to inspect gives UNKNOWN,
+and tampering with the audit log turns the integrity controls to FAIL (covered by tests).
+
+This is technical evidence only, **not** a certification against any standard.
+
+Frontend: **Compliance** (run checks, per-framework evidence) and **Audit Logs** (filters, paging,
+"Verify chain") are now live in the sidebar for roles holding the matching permission.
+
+## Phase 10: hardening, documentation, demo
+
+`docs/` holds the architecture, STRIDE threat model (with honest residual risks) and a 10-minute
+demo guide. `scripts/setup.sh` and `scripts/check_all.sh` give one-command setup and verification;
+`scripts/demo_flow.py` exercises every module end to end against a running server and exits
+non-zero if any step misbehaves.
 
 ## Try the API from Swagger
 

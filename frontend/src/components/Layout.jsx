@@ -9,8 +9,8 @@ const NAV = [
   { label: "Quality Control", to: "/quality", anyOf: ["quality:inspect", "quality:view"] },
   { label: "Supply Chain", to: "/supply-chain", anyOf: ["provenance:verify", "part:authenticate"] },
   { label: "Manufacturing", to: "/manufacturing", anyOf: ["printer:control", "gcode:analyze", "incident:view"] },
-  { label: "Compliance", phase: 9 },
-  { label: "Audit Logs", phase: 9 },
+  { label: "Compliance", to: "/compliance", anyOf: ["compliance:view"] },
+  { label: "Audit Logs", to: "/audit", anyOf: ["audit:view"] },
 ];
 
 export default function Layout() {

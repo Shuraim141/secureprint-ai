@@ -125,6 +125,8 @@ export const api = {
   dashboardSummary: (signal) => request("/api/dashboard/summary", { signal }),
   auditLogs: (params, signal) => request(withQuery("/api/audit/logs", params), { signal }),
   verifyAuditChain: (signal) => request("/api/audit/verify", { signal }),
+  complianceControls: (signal) => request("/api/compliance/controls", { signal }),
+  runCompliance: () => request("/api/compliance/run", { method: "POST" }),
 
   // --- 3D/4D design security (multipart uploads: the browser sets the boundary header)
   listDesigns: (signal) => request("/api/designs", { signal }),

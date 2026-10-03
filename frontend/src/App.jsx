@@ -8,6 +8,8 @@ import DesignsPage from "./pages/DesignsPage";
 import QualityPage from "./pages/QualityPage";
 import ManufacturingPage from "./pages/ManufacturingPage";
 import SupplyChainPage from "./pages/SupplyChainPage";
+import CompliancePage from "./pages/CompliancePage";
+import AuditLogsPage from "./pages/AuditLogsPage";
 import LoginPage from "./pages/LoginPage";
 import NotFoundPage from "./pages/NotFoundPage";
 
@@ -54,6 +56,22 @@ export default function App() {
               element={
                 <ProtectedRoute permission={["printer:control", "gcode:analyze", "incident:view"]}>
                   <ManufacturingPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="compliance"
+              element={
+                <ProtectedRoute permission={["compliance:view"]}>
+                  <CompliancePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="audit"
+              element={
+                <ProtectedRoute permission={["audit:view"]}>
+                  <AuditLogsPage />
                 </ProtectedRoute>
               }
             />
