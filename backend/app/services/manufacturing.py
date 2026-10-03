@@ -9,15 +9,15 @@ cosmetic flag), and writes an audit trail for every step -- matching the spec's 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.hardware import get_hardware_profile
 from app.config import get_settings
+from app.hardware import get_hardware_profile
 from app.manufacturing.anomaly import AnomalyResult
 from app.manufacturing.gcode import analyze_gcode
 from app.manufacturing.mes import get_mes_adapter
 from app.manufacturing.simulator import RunningJob, registry
 from app.manufacturing.telemetry import SCENARIOS
-from app.ml.registry import get_process_model
 from app.ml.quality_model import ModelNotTrainedError
+from app.ml.registry import get_process_model
 from app.models import GCodeAnalysis, Incident, Printer, PrintJob, User
 from app.services.security_events import record_security_event
 

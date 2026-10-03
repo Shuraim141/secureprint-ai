@@ -57,7 +57,8 @@ export default function GCodeCard() {
                 <li key={index} className="rounded-lg border border-slate-800 px-3 py-1.5">
                   <span className="text-slate-500">line {finding.line || "—"}</span>{" "}
                   <StatusBadge tone={RISK_TONE[finding.severity] ?? "neutral"}>{finding.severity}</StatusBadge>{" "}
-                  <span className="text-slate-300">{finding.message}</span>
+                  <code className="text-xs text-slate-500">{finding.code}</code>
+                  <div className="text-slate-300">{finding.message}</div>
                 </li>
               ))}
             </ul>

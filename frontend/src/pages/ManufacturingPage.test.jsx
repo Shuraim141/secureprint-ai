@@ -35,7 +35,9 @@ describe("ManufacturingPage", () => {
     await screen.findByText(/PRINTER-01/);
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "OVERHEAT" } });
     fireEvent.click(screen.getByRole("button", { name: /^start$/i }));
-    await waitFor(() => expect(api.startPrint).toHaveBeenCalledWith(1, "OVERHEAT", undefined));
+    // PrinterCard calls api.startPrint(printer.id, scenario) -- no seed argument -- so
+    // the mock is called with exactly 2 arguments, not 3 with an explicit undefined.
+    await waitFor(() => expect(api.startPrint).toHaveBeenCalledWith(1, "OVERHEAT"));
   });
 
   it("shows live telemetry including an anomaly badge", async () => {

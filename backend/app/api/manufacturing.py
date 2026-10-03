@@ -84,7 +84,7 @@ def get_telemetry(printer_id: int, limit: int = Query(30, ge=1, le=120),
                   _user: User = Depends(require_permission(Permission.PRINTER_CONTROL,
                                                            Permission.DASHBOARD_VIEW)),
                   db: Session = Depends(get_db)):
-    printer = _printer_or_404(db, printer_id)
+    _printer_or_404(db, printer_id)  # 404 if the printer does not exist; row itself unused here
     samples = svc.get_telemetry(printer_id, limit=limit)
     from app.manufacturing.simulator import registry
     job = registry.get(printer_id)

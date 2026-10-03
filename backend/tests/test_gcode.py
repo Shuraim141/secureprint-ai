@@ -1,7 +1,7 @@
 """Pure-logic tests for the G-code safety analyzer. No web framework or database."""
 import pathlib
 
-from app.manufacturing.gcode import GCodeTooLargeError, MAX_LINE_LENGTH, MAX_LINES, analyze_gcode
+from app.manufacturing.gcode import MAX_LINE_LENGTH, MAX_LINES, GCodeTooLargeError, analyze_gcode
 
 SAMPLES_DIR = pathlib.Path(__file__).resolve().parents[2] / "manufacturing" / "gcode"
 

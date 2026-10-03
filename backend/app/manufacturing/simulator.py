@@ -18,7 +18,7 @@ from collections import deque
 from dataclasses import dataclass, field
 
 from app.manufacturing.anomaly import AnomalyResult, detect_anomaly
-from app.manufacturing.telemetry import JobParams, SCENARIOS, generate_sample, is_complete
+from app.manufacturing.telemetry import SCENARIOS, JobParams, generate_sample, is_complete
 
 TELEMETRY_BUFFER_SIZE = 120  # ~2 minutes at 1 tick/second
 
